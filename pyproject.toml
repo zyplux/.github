@@ -1,0 +1,12 @@
+[project]
+name = "zyplux-github"
+version = "0"
+description = "Org-wide reusable CI for the zyplux organization"
+requires-python = ">=3.10"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+pythonpath = ["scripts"]
+testpaths = ["tests"]

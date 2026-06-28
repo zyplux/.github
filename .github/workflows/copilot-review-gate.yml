@@ -1,0 +1,33 @@
+name: copilot-review-gate
+
+on:
+  workflow_call:
+
+permissions:
+  statuses: write
+  checks: read
+  pull-requests: read
+
+concurrency:
+  group: copilot-review-gate-${{ github.repository }}-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  mirror:
+    name: mirror copilot review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out gate script
+        uses: actions/checkout@v4
+        with:
+          repository: zyplux/.github
+          ref: main
+          path: gate
+          sparse-checkout: scripts
+      - name: Mirror Copilot review to a commit status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 gate/scripts/copilot_review_gate.py
