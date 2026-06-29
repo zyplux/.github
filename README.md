@@ -3,24 +3,31 @@
 This is the special `.github` repository for the **zyplux** organization.
 
 It powers the public organization profile content shown at:
-https://github.com/zyplux
+<https://github.com/zyplux>
 
 Profile source file:
+
 - `profile/README.md`
 
 ## Reusable CI
 
-### copilot-review-gate
+### org_gate_base
 
-Mirrors the GitHub Copilot pull-request review onto a requireable
+Watches the GitHub Copilot pull-request review and records it on a requireable
 `copilot-review-complete` commit status (see [docs](docs/copilot-review-gate.md)).
 Every org repo that the `default-branch-baseline` ruleset covers must call it, or
 its PRs block forever on the missing status.
 
-Add `.github/workflows/copilot-review-gate.yml` to the consuming repo:
+Copilot's review is re-triggered only by a flip → push → flip cycle (the push must
+land _between_ the draft and ready flips); a manual draft↔ready flip, or a push
+that lands after (or before for non-first) the ready flip, requests no review. Drive pushes with
+`just pr` / `cz push-branch --ready`, never flip the PR by hand — see
+[the draft-event race](docs/copilot-review-gate.md#the-draft-event-race).
+
+Add `.github/workflows/org_gate.yml` to the consuming repo:
 
 ```yaml
-name: copilot-review-gate
+name: org_gate
 
 on:
   pull_request:
@@ -32,6 +39,6 @@ permissions:
   pull-requests: read
 
 jobs:
-  mirror:
-    uses: zyplux/.github/.github/workflows/copilot-review-gate.yml@main
+  org_gate_base:
+    uses: zyplux/.github/.github/workflows/org_gate_base.yml@main
 ```
