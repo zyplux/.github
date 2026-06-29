@@ -11,6 +11,7 @@ import urllib.request
 API_ROOT = "https://api.github.com"
 STATUS_CONTEXT = "copilot-review-complete"
 COPILOT_CHECK_NAME = "copilot-pull-request-reviewer"
+COPILOT_LOGIN_FRAGMENT = "copilot"
 
 READY_POLL_ATTEMPTS = 40
 READY_POLL_SECONDS = 5
@@ -18,6 +19,39 @@ APPEAR_POLL_ATTEMPTS = 12
 APPEAR_POLL_SECONDS = 15
 COMPLETE_POLL_ATTEMPTS = 60
 COMPLETE_POLL_SECONDS = 15
+REVIEW_POLL_ATTEMPTS = 6
+REVIEW_POLL_SECONDS = 5
+
+REVIEW_THREADS_QUERY = """
+query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100) {
+        nodes {
+          isResolved
+          comments(first: 1) {
+            nodes {
+              author {
+                login
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+CONVERT_TO_DRAFT_MUTATION = """
+mutation($id: ID!) {
+  convertPullRequestToDraft(input: {pullRequestId: $id}) {
+    pullRequest {
+      isDraft
+    }
+  }
+}
+"""
 
 
 def _request(method: str, path: str, payload: dict | None = None) -> object:
@@ -29,6 +63,20 @@ def _request(method: str, path: str, payload: dict | None = None) -> object:
     with urllib.request.urlopen(request) as response:
         body = response.read()
     return json.loads(body) if body else None
+
+
+def _graphql(query: str, variables: dict) -> dict:
+    data = json.dumps({"query": query, "variables": variables}).encode()
+    request = urllib.request.Request(f"{API_ROOT}/graphql", data=data, method="POST")
+    request.add_header("Authorization", f"Bearer {os.environ['GH_TOKEN']}")
+    request.add_header("Accept", "application/vnd.github+json")
+    request.add_header("Content-Type", "application/json")
+    with urllib.request.urlopen(request) as response:
+        body = response.read()
+    result = json.loads(body)
+    if result.get("errors"):
+        raise RuntimeError(f"GraphQL errors: {result['errors']}")
+    return result["data"]
 
 
 def read_is_draft(repo: str, pr: str) -> bool:
@@ -46,6 +94,51 @@ def fetch_copilot_run(repo: str, sha: str) -> dict | None:
     query = urllib.parse.urlencode({"check_name": COPILOT_CHECK_NAME, "per_page": 100})
     result = _request("GET", f"repos/{repo}/commits/{sha}/check-runs?{query}") or {}
     return find_copilot_run(result.get("check_runs", []))
+
+
+def is_copilot_author(login: str) -> bool:
+    return COPILOT_LOGIN_FRAGMENT in login.lower()
+
+
+def fetch_copilot_review(repo: str, pr: str, sha: str) -> dict | None:
+    reviews = _request("GET", f"repos/{repo}/pulls/{pr}/reviews?per_page=100") or []
+    return next(
+        (
+            review
+            for review in reviews
+            if review.get("commit_id") == sha
+            and is_copilot_author((review.get("user") or {}).get("login", ""))
+        ),
+        None,
+    )
+
+
+def count_unresolved_copilot_threads(repo: str, pr: str) -> int:
+    owner, name = repo.split("/", 1)
+    data = _graphql(
+        REVIEW_THREADS_QUERY, {"owner": owner, "name": name, "number": int(pr)}
+    )
+    threads = data["repository"]["pullRequest"]["reviewThreads"]["nodes"]
+    unresolved = 0
+    for thread in threads:
+        if thread["isResolved"]:
+            continue
+        comments = thread["comments"]["nodes"]
+        if not comments:
+            continue
+        if is_copilot_author((comments[0].get("author") or {}).get("login", "")):
+            unresolved += 1
+    return unresolved
+
+
+def fetch_pr_node_id(repo: str, pr: str) -> str:
+    pull = _request("GET", f"repos/{repo}/pulls/{pr}")
+    return pull["node_id"]
+
+
+def convert_to_draft(repo: str, pr: str) -> None:
+    node_id = fetch_pr_node_id(repo, pr)
+    _graphql(CONVERT_TO_DRAFT_MUTATION, {"id": node_id})
 
 
 def build_status(conclusion: str) -> tuple[str, str]:
@@ -104,6 +197,18 @@ def await_copilot_run(repo: str, sha: str) -> tuple[str, dict | None]:
     return ("incomplete", run)
 
 
+def await_copilot_review(repo: str, pr: str, sha: str) -> dict | None:
+    for _ in range(REVIEW_POLL_ATTEMPTS):
+        try:
+            review = fetch_copilot_review(repo, pr, sha)
+        except urllib.error.URLError:
+            review = None
+        if review is not None:
+            return review
+        time.sleep(REVIEW_POLL_SECONDS)
+    return None
+
+
 def main() -> int:
     repo = os.environ["REPO"]
     pr = os.environ["PR"]
@@ -132,10 +237,6 @@ def main() -> int:
         )
 
     outcome, run = await_copilot_run(repo, sha)
-    if outcome == "completed":
-        state, description = build_status(run.get("conclusion") or "")
-        post_status(repo, sha, state, description, run.get("details_url") or "")
-        return 0
     if outcome == "not_requested":
         post_status(
             repo,
@@ -152,13 +253,43 @@ def main() -> int:
             "Copilot review started but did not complete in time",
         )
         return 0
+    if outcome == "unqueryable":
+        post_status(repo, sha, "error", "Could not query the Copilot review check-run")
+        return 1
+
+    conclusion = (run or {}).get("conclusion") or ""
+    target_url = (run or {}).get("details_url") or ""
+    if conclusion != "success":
+        state, description = build_status(conclusion)
+        post_status(repo, sha, state, description, target_url)
+        return 0
+
+    await_copilot_review(repo, pr, sha)
+    try:
+        unresolved = count_unresolved_copilot_threads(repo, pr)
+    except (urllib.error.URLError, RuntimeError, KeyError) as error:
+        post_status(repo, sha, "error", "Could not query Copilot review comments")
+        print(f"::error::could not count Copilot review threads: {error}")
+        return 1
+
+    if unresolved == 0:
+        state, description = build_status("success")
+        post_status(repo, sha, state, description, target_url)
+        return 0
+
+    noun = "comment" if unresolved == 1 else "comments"
     post_status(
         repo,
         sha,
-        "error",
-        "Could not query the Copilot review check-run",
+        "failure",
+        f"Copilot left {unresolved} unresolved {noun} — resolve them, then re-run `just pr`",
     )
-    return 1
+    try:
+        convert_to_draft(repo, pr)
+        print(f"Converted PR #{pr} to draft pending Copilot comment resolution")
+    except (urllib.error.URLError, RuntimeError, KeyError) as error:
+        print(f"::warning::could not convert PR #{pr} to draft (continuing): {error}")
+    return 0
 
 
 if __name__ == "__main__":

@@ -126,14 +126,71 @@ def _set_pr_env(monkeypatch):
     monkeypatch.setenv("SHA", "deadbeef")
 
 
-def test_main_records_completed_review(monkeypatch):
+def _record_draft_flips(monkeypatch):
+    flipped = []
+    monkeypatch.setattr(gate, "convert_to_draft", lambda repo, pr: flipped.append(pr))
+    return flipped
+
+
+def test_main_clean_review_posts_success_and_stays_ready(monkeypatch):
     _set_pr_env(monkeypatch)
     monkeypatch.setattr(gate, "wait_for_ready", lambda repo, pr: "ready")
     run = {"status": "completed", "conclusion": "success", "details_url": "http://run"}
     monkeypatch.setattr(gate, "await_copilot_run", lambda repo, sha: ("completed", run))
+    monkeypatch.setattr(gate, "await_copilot_review", lambda repo, pr, sha: {"id": 1})
+    monkeypatch.setattr(gate, "count_unresolved_copilot_threads", lambda repo, pr: 0)
+    flipped = _record_draft_flips(monkeypatch)
     posted = _record_posted_statuses(monkeypatch)
     assert gate.main() == 0
     assert posted[-1] == ("success", "Copilot review success")
+    assert flipped == []
+
+
+def test_main_unresolved_comments_blocks_and_converts_to_draft(monkeypatch):
+    _set_pr_env(monkeypatch)
+    monkeypatch.setattr(gate, "wait_for_ready", lambda repo, pr: "ready")
+    run = {"status": "completed", "conclusion": "success"}
+    monkeypatch.setattr(gate, "await_copilot_run", lambda repo, sha: ("completed", run))
+    monkeypatch.setattr(gate, "await_copilot_review", lambda repo, pr, sha: {"id": 1})
+    monkeypatch.setattr(gate, "count_unresolved_copilot_threads", lambda repo, pr: 2)
+    flipped = _record_draft_flips(monkeypatch)
+    posted = _record_posted_statuses(monkeypatch)
+    assert gate.main() == 0
+    assert posted[-1][0] == "failure"
+    assert "2 unresolved comments" in posted[-1][1]
+    assert flipped == ["1"]
+
+
+def test_main_failed_conclusion_blocks_without_counting_threads(monkeypatch):
+    _set_pr_env(monkeypatch)
+    monkeypatch.setattr(gate, "wait_for_ready", lambda repo, pr: "ready")
+    run = {"status": "completed", "conclusion": "cancelled"}
+    monkeypatch.setattr(gate, "await_copilot_run", lambda repo, sha: ("completed", run))
+
+    def fail(repo, pr):
+        raise AssertionError("must not count threads on a non-success conclusion")
+
+    monkeypatch.setattr(gate, "count_unresolved_copilot_threads", fail)
+    posted = _record_posted_statuses(monkeypatch)
+    assert gate.main() == 0
+    assert posted[-1][0] == "failure"
+    assert "cancelled" in posted[-1][1]
+
+
+def test_main_unreadable_threads_fails_the_job(monkeypatch):
+    _set_pr_env(monkeypatch)
+    monkeypatch.setattr(gate, "wait_for_ready", lambda repo, pr: "ready")
+    run = {"status": "completed", "conclusion": "success"}
+    monkeypatch.setattr(gate, "await_copilot_run", lambda repo, sha: ("completed", run))
+    monkeypatch.setattr(gate, "await_copilot_review", lambda repo, pr, sha: None)
+
+    def boom(repo, pr):
+        raise urllib.error.URLError("graphql down")
+
+    monkeypatch.setattr(gate, "count_unresolved_copilot_threads", boom)
+    posted = _record_posted_statuses(monkeypatch)
+    assert gate.main() == 1
+    assert posted[-1][0] == "error"
 
 
 def test_main_not_requested_blocks_but_job_stays_green(monkeypatch):
@@ -184,3 +241,99 @@ def test_main_draft_leaves_no_status(monkeypatch):
     posted = _record_posted_statuses(monkeypatch)
     assert gate.main() == 0
     assert posted == []
+
+
+def test_is_copilot_author_matches_bot_login_case_insensitively():
+    assert gate.is_copilot_author("copilot-pull-request-reviewer[bot]")
+    assert gate.is_copilot_author("Copilot")
+    assert not gate.is_copilot_author("realSergiy")
+
+
+def test_fetch_copilot_review_matches_sha_and_author(monkeypatch):
+    reviews = [
+        {"commit_id": "other", "user": {"login": "copilot-pull-request-reviewer[bot]"}},
+        {"commit_id": "deadbeef", "user": {"login": "realSergiy"}},
+        {
+            "commit_id": "deadbeef",
+            "user": {"login": "copilot-pull-request-reviewer[bot]"},
+            "id": 7,
+        },
+    ]
+    monkeypatch.setattr(gate, "_request", lambda method, path: reviews)
+    assert gate.fetch_copilot_review("owner/repo", "1", "deadbeef")["id"] == 7
+
+
+def test_fetch_copilot_review_returns_none_when_absent(monkeypatch):
+    monkeypatch.setattr(gate, "_request", lambda method, path: [])
+    assert gate.fetch_copilot_review("owner/repo", "1", "deadbeef") is None
+
+
+def test_await_copilot_review_returns_when_review_appears(monkeypatch):
+    reviews = iter([None, None, {"id": 9}])
+    monkeypatch.setattr(
+        gate, "fetch_copilot_review", lambda repo, pr, sha: next(reviews)
+    )
+    monkeypatch.setattr(gate.time, "sleep", lambda _seconds: None)
+    assert gate.await_copilot_review("owner/repo", "1", "sha") == {"id": 9}
+
+
+def test_await_copilot_review_returns_none_when_never_appears(monkeypatch):
+    monkeypatch.setattr(gate, "fetch_copilot_review", lambda repo, pr, sha: None)
+    monkeypatch.setattr(gate.time, "sleep", lambda _seconds: None)
+    monkeypatch.setattr(gate, "REVIEW_POLL_ATTEMPTS", 3)
+    assert gate.await_copilot_review("owner/repo", "1", "sha") is None
+
+
+def test_count_unresolved_copilot_threads_counts_only_unresolved_copilot(monkeypatch):
+    data = {
+        "repository": {
+            "pullRequest": {
+                "reviewThreads": {
+                    "nodes": [
+                        {
+                            "isResolved": False,
+                            "comments": {"nodes": [{"author": {"login": "Copilot"}}]},
+                        },
+                        {
+                            "isResolved": True,
+                            "comments": {"nodes": [{"author": {"login": "Copilot"}}]},
+                        },
+                        {
+                            "isResolved": False,
+                            "comments": {
+                                "nodes": [{"author": {"login": "realSergiy"}}]
+                            },
+                        },
+                        {
+                            "isResolved": False,
+                            "comments": {
+                                "nodes": [
+                                    {
+                                        "author": {
+                                            "login": "copilot-pull-request-reviewer"
+                                        }
+                                    }
+                                ]
+                            },
+                        },
+                        {"isResolved": False, "comments": {"nodes": []}},
+                    ]
+                }
+            }
+        }
+    }
+    monkeypatch.setattr(gate, "_graphql", lambda query, variables: data)
+    assert gate.count_unresolved_copilot_threads("owner/repo", "1") == 2
+
+
+def test_convert_to_draft_sends_pr_node_id(monkeypatch):
+    monkeypatch.setattr(gate, "fetch_pr_node_id", lambda repo, pr: "PR_node123")
+    captured = {}
+
+    def record(query, variables):
+        captured.update(variables)
+        return {}
+
+    monkeypatch.setattr(gate, "_graphql", record)
+    gate.convert_to_draft("owner/repo", "1")
+    assert captured == {"id": "PR_node123"}
