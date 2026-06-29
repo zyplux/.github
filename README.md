@@ -15,9 +15,10 @@ Profile source file:
 
 Watches the GitHub Copilot pull-request review and records it on a requireable
 `copilot-review-complete` commit status (see [docs](docs/copilot-review-gate.md)).
-A clean review records `success`; unresolved Copilot comments record `failure`
-and flip the PR back to draft. Every org repo that the `default-branch-baseline`
-ruleset covers must call it, or its PRs block forever on the missing status.
+A clean review records `success`; unresolved Copilot comments record `failure`,
+blocking the merge until they are resolved. Every org repo that the
+`default-branch-baseline` ruleset covers must call it, or its PRs block forever on
+the missing status.
 
 Copilot's review is re-triggered only by a flip → push → flip cycle (the push must
 land _between_ the draft and ready flips); a manual draft↔ready flip, or a push
@@ -37,7 +38,7 @@ on:
 permissions:
   statuses: write
   checks: read
-  pull-requests: write
+  pull-requests: read
 
 jobs:
   org_gate_base:

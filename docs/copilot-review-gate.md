@@ -3,8 +3,8 @@
 A reusable workflow that watches the GitHub Copilot pull-request review and
 records its result on a `copilot-review-complete` commit status, so the org
 ruleset can require Copilot review as a merge gate. A clean review records
-`success`; unresolved Copilot comments record `failure` and flip the PR back to
-draft.
+`success`; unresolved Copilot comments record `failure`, blocking the merge until
+they are resolved.
 
 ## Why a watcher is needed
 
@@ -32,8 +32,8 @@ reusable workflow, which runs `scripts/copilot_review_gate.py`. The script:
    be submitted on the head SHA, then counts unresolved review threads authored by
    Copilot:
    - zero → records `success`; the PR can auto-merge.
-   - one or more → records `failure` and converts the PR back to draft, so its
-     at-rest state honestly reads "your turn". Resolve the threads, then `just pr`.
+   - one or more → records `failure`, which blocks the merge. Resolve the threads,
+     then `just pr` (its flip → push → flip re-triggers Copilot on the new SHA).
 3. Filters the check-runs poll with `check_name` + `per_page=100`; the unfiltered
    endpoint paginates at 30, so the Copilot run could fall off the first page.
 4. Posts a definitive status and exits 0 for every verdict it can determine —
@@ -55,8 +55,7 @@ and `copilot-review-complete` are both green and there are zero threads, so
 `required_review_thread_resolution` has nothing to block on and auto-merge can
 fire on a PR that is about to receive comments. The watcher closes the gap by
 waiting for the review submission (atomic with its comments) and counting threads
-before it records success — and `pull-requests: write` lets it flip the PR to
-draft when those threads exist.
+before it records success.
 
 ## The draft-event race
 

@@ -43,16 +43,6 @@ query($owner: String!, $name: String!, $number: Int!) {
 }
 """
 
-CONVERT_TO_DRAFT_MUTATION = """
-mutation($id: ID!) {
-  convertPullRequestToDraft(input: {pullRequestId: $id}) {
-    pullRequest {
-      isDraft
-    }
-  }
-}
-"""
-
 
 def _request(method: str, path: str, payload: dict | None = None) -> object:
     data = json.dumps(payload).encode() if payload is not None else None
@@ -129,16 +119,6 @@ def count_unresolved_copilot_threads(repo: str, pr: str) -> int:
         if is_copilot_author((comments[0].get("author") or {}).get("login", "")):
             unresolved += 1
     return unresolved
-
-
-def fetch_pr_node_id(repo: str, pr: str) -> str:
-    pull = _request("GET", f"repos/{repo}/pulls/{pr}")
-    return pull["node_id"]
-
-
-def convert_to_draft(repo: str, pr: str) -> None:
-    node_id = fetch_pr_node_id(repo, pr)
-    _graphql(CONVERT_TO_DRAFT_MUTATION, {"id": node_id})
 
 
 def build_status(conclusion: str) -> tuple[str, str]:
@@ -284,11 +264,6 @@ def main() -> int:
         "failure",
         f"Copilot left {unresolved} unresolved {noun} — resolve them, then re-run `just pr`",
     )
-    try:
-        convert_to_draft(repo, pr)
-        print(f"Converted PR #{pr} to draft pending Copilot comment resolution")
-    except (urllib.error.URLError, RuntimeError, KeyError) as error:
-        print(f"::warning::could not convert PR #{pr} to draft (continuing): {error}")
     return 0
 
 
