@@ -36,6 +36,14 @@ That cycle fires `synchronize` (draft) then `ready_for_review` (ready) in quick
 succession, and GitHub does not reliably spawn a workflow run for the
 `ready_for_review` event when it lands within seconds of the push. So the gate
 must not gate on the event-payload draft flag or skip the `synchronize` run —
-every run polls the live draft state and mirrors from whichever survives. The
-concurrency group is keyed on `repository` + PR number so the later event cancels
-the earlier in-progress run, and never collides across repos.
+every run polls the live draft state and mirrors from whichever fires.
+
+The concurrency group is keyed on `repository` + PR number + the event-payload
+`draft` flag. Keying on the draft flag puts the `synchronize` (draft) run and the
+`ready_for_review` (ready) run of one push in *separate* groups, so they do not
+cancel each other — both complete and post a success status. Cancelling one (a
+PR-number-only group) would leave a cancelled check-run on the head, which the PR
+UI renders as a failing check even though the surviving run succeeded. The
+redundant second run is cheap (the job is mostly idle polling). A genuinely newer
+push still supersedes the prior run within the same draft phase, and the key
+never collides across repos.
