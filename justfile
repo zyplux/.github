@@ -75,7 +75,7 @@ clean:
     rm -rf node_modules packages/*/node_modules tests/*/node_modules
     rm -rf .venv .pytest_cache .ruff_cache .rumdl_cache .eslintcache .tsbuild
     find . -type d \( -name __pycache__ -o -name .tsbuild -o -name dist -o -name .ruff_cache -o -name .pytest_cache \) -prune -exec rm -rf {} +
-    find . -type f \( -name '*.tsbuildinfo' -o -name '.eslintcache' -o -name '*.py[cod]' \) -delete    
+    find . -type f \( -name '*.tsbuildinfo' -o -name '.eslintcache' -o -name '*.py[cod]' \) -delete
 
 # Upsert every org ruleset in rulesets/ to GitHub (source of truth). Needs gh authenticated with org-admin scope.
 apply-org-ruleset:
