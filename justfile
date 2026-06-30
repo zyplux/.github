@@ -48,7 +48,7 @@ test name='':
 # Full gate across both workspaces: install, knip, typecheck, lint, test — autofix throughout.
 check: install knip typecheck lint test
 
-# Upgrade JS dependencies via ncu. Forwards extra args (e.g. `just u -i`).
+# Upgrade JS deps (ncu) and Python deps (uv lock/uv-bump/uv sync). Forwards extra args (e.g. `just u -i`).
 upgrade *args='':
     bun run upgrade -- {{ args }}
     uv lock --upgrade

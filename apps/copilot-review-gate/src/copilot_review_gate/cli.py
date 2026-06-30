@@ -15,6 +15,7 @@ type Json = dict[str, Json] | list[Json] | str | int | float | bool | None
 type JsonObject = dict[str, Json]
 
 API_ROOT = "https://api.github.com"
+HTTP_TIMEOUT_SECONDS = 30
 STATUS_CONTEXT = "copilot-review-complete"
 COPILOT_CHECK_NAME = "copilot-pull-request-reviewer"
 COPILOT_LOGIN_FRAGMENT = "copilot"
@@ -65,7 +66,7 @@ def _send(method: str, url: str, data: bytes | None, headers: dict[str, str]) ->
     request = urllib.request.Request(url, data=data, method=method)  # noqa: S310
     for key, value in headers.items():
         request.add_header(key, value)
-    with urllib.request.urlopen(request) as response:  # noqa: S310
+    with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT_SECONDS) as response:  # noqa: S310
         return response.read()
 
 
