@@ -5,7 +5,9 @@ import copilot_review_gate as gate
 
 def test_find_copilot_run_picks_matching_name():
     runs = [{"name": "ci"}, {"name": gate.COPILOT_CHECK_NAME, "status": "completed"}]
-    assert gate.find_copilot_run(runs)["status"] == "completed"
+    run = gate.find_copilot_run(runs)
+    assert run is not None
+    assert run["status"] == "completed"
 
 
 def test_find_copilot_run_returns_none_when_absent():
@@ -186,9 +188,7 @@ def test_main_unreadable_threads_fails_the_job(monkeypatch):
 def test_main_not_requested_blocks_but_job_stays_green(monkeypatch):
     _set_pr_env(monkeypatch)
     monkeypatch.setattr(gate, "wait_for_ready", lambda repo, pr: "ready")
-    monkeypatch.setattr(
-        gate, "await_copilot_run", lambda repo, sha: ("not_requested", None)
-    )
+    monkeypatch.setattr(gate, "await_copilot_run", lambda repo, sha: ("not_requested", None))
     posted = _record_posted_statuses(monkeypatch)
     assert gate.main() == 0
     assert posted[-1][0] == "failure"
@@ -198,9 +198,7 @@ def test_main_not_requested_blocks_but_job_stays_green(monkeypatch):
 def test_main_incomplete_blocks_but_job_stays_green(monkeypatch):
     _set_pr_env(monkeypatch)
     monkeypatch.setattr(gate, "wait_for_ready", lambda repo, pr: "ready")
-    monkeypatch.setattr(
-        gate, "await_copilot_run", lambda repo, sha: ("incomplete", None)
-    )
+    monkeypatch.setattr(gate, "await_copilot_run", lambda repo, sha: ("incomplete", None))
     posted = _record_posted_statuses(monkeypatch)
     assert gate.main() == 0
     assert posted[-1][0] == "error"
@@ -209,9 +207,7 @@ def test_main_incomplete_blocks_but_job_stays_green(monkeypatch):
 def test_main_unqueryable_fails_the_job(monkeypatch):
     _set_pr_env(monkeypatch)
     monkeypatch.setattr(gate, "wait_for_ready", lambda repo, pr: "ready")
-    monkeypatch.setattr(
-        gate, "await_copilot_run", lambda repo, sha: ("unqueryable", None)
-    )
+    monkeypatch.setattr(gate, "await_copilot_run", lambda repo, sha: ("unqueryable", None))
     posted = _record_posted_statuses(monkeypatch)
     assert gate.main() == 1
     assert posted[-1][0] == "error"
@@ -250,7 +246,9 @@ def test_fetch_copilot_review_matches_sha_and_author(monkeypatch):
         },
     ]
     monkeypatch.setattr(gate, "_request", lambda method, path: reviews)
-    assert gate.fetch_copilot_review("owner/repo", "1", "deadbeef")["id"] == 7
+    review = gate.fetch_copilot_review("owner/repo", "1", "deadbeef")
+    assert review is not None
+    assert review["id"] == 7
 
 
 def test_fetch_copilot_review_returns_none_when_absent(monkeypatch):
@@ -260,9 +258,7 @@ def test_fetch_copilot_review_returns_none_when_absent(monkeypatch):
 
 def test_await_copilot_review_returns_when_review_appears(monkeypatch):
     reviews = iter([None, None, {"id": 9}])
-    monkeypatch.setattr(
-        gate, "fetch_copilot_review", lambda repo, pr, sha: next(reviews)
-    )
+    monkeypatch.setattr(gate, "fetch_copilot_review", lambda repo, pr, sha: next(reviews))
     monkeypatch.setattr(gate.time, "sleep", lambda _seconds: None)
     assert gate.await_copilot_review("owner/repo", "1", "sha") == {"id": 9}
 
@@ -290,20 +286,12 @@ def test_count_unresolved_copilot_threads_counts_only_unresolved_copilot(monkeyp
                         },
                         {
                             "isResolved": False,
-                            "comments": {
-                                "nodes": [{"author": {"login": "realSergiy"}}]
-                            },
+                            "comments": {"nodes": [{"author": {"login": "realSergiy"}}]},
                         },
                         {
                             "isResolved": False,
                             "comments": {
-                                "nodes": [
-                                    {
-                                        "author": {
-                                            "login": "copilot-pull-request-reviewer"
-                                        }
-                                    }
-                                ]
+                                "nodes": [{"author": {"login": "copilot-pull-request-reviewer"}}]
                             },
                         },
                         {"isResolved": False, "comments": {"nodes": []}},

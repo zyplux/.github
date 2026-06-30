@@ -1,0 +1,14 @@
+[project]
+name = "copilot-review-gate"
+version = "0"
+description = "Watches the GitHub Copilot pull-request review and records it as a commit status"
+requires-python = ">=3.14"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "copilot_review_gate"
+module-root = "src"

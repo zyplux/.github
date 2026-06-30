@@ -2,14 +2,53 @@
 name = "zyplux-github"
 version = "0"
 description = "Org-wide reusable CI for the zyplux organization"
-requires-python = ">=3.10"
+requires-python = ">=3.14"
 
-[dependency-groups]
-dev = [
-    "pytest>=8",
-    "ruff>=0.15.20",
-]
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["apps/copilot-review-gate"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC", "S", "RUF"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S"]
+# The gate's sole HTTP boundary: every request targets the hardcoded https
+# API_ROOT, so S310's file:/custom-scheme risk cannot arise — the audit is moot.
+"apps/copilot-review-gate/src/copilot_review_gate/__init__.py" = ["S310"]
+
+[tool.cerberus]
+# .github is org infrastructure with no CI gate of its own (it is excluded from
+# the org ruleset), so the CI-shaped checks and CODEOWNERS do not apply here.
+disable = ["ci-workflow", "ci-sequence", "cerberus-step", "codeowners"]
 
 [tool.pytest.ini_options]
-pythonpath = ["scripts"]
-testpaths = ["tests"]
+testpaths = ["tests/copilot-review-gate"]
+
+[tool.pyrefly]
+project-includes = ["apps/copilot-review-gate/src", "tests/copilot-review-gate"]
+search-path = ["apps/copilot-review-gate/src"]
+
+[tool.vulture]
+paths = ["apps/copilot-review-gate/src", "tests/copilot-review-gate"]
+
+[dependency-groups]
+lint = [
+    "ruff>=0.15.20",
+    "rumdl>=0.2.16",
+    "vulture>=2.16",
+    "zyplux-cerberus>=0.4.1",
+]
+test = [
+    "pytest>=9.1.0",
+]
+type = [
+    "pyrefly>=1.0.0",
+]

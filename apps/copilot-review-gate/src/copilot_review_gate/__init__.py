@@ -7,6 +7,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from typing import Any
 
 API_ROOT = "https://api.github.com"
 STATUS_CONTEXT = "copilot-review-complete"
@@ -44,7 +45,7 @@ query($owner: String!, $name: String!, $number: Int!) {
 """
 
 
-def _request(method: str, path: str, payload: dict | None = None) -> object:
+def _request(method: str, path: str, payload: dict | None = None) -> Any:
     data = json.dumps(payload).encode() if payload is not None else None
     request = urllib.request.Request(f"{API_ROOT}/{path}", data=data, method=method)
     request.add_header("Authorization", f"Bearer {os.environ['GH_TOKEN']}")
@@ -75,9 +76,7 @@ def read_is_draft(repo: str, pr: str) -> bool:
 
 
 def find_copilot_run(check_runs: list[dict]) -> dict | None:
-    return next(
-        (run for run in check_runs if run.get("name") == COPILOT_CHECK_NAME), None
-    )
+    return next((run for run in check_runs if run.get("name") == COPILOT_CHECK_NAME), None)
 
 
 def fetch_copilot_run(repo: str, sha: str) -> dict | None:
@@ -105,9 +104,7 @@ def fetch_copilot_review(repo: str, pr: str, sha: str) -> dict | None:
 
 def count_unresolved_copilot_threads(repo: str, pr: str) -> int:
     owner, name = repo.split("/", 1)
-    data = _graphql(
-        REVIEW_THREADS_QUERY, {"owner": owner, "name": name, "number": int(pr)}
-    )
+    data = _graphql(REVIEW_THREADS_QUERY, {"owner": owner, "name": name, "number": int(pr)})
     threads = data["repository"]["pullRequest"]["reviewThreads"]["nodes"]
     unresolved = 0
     for thread in threads:
@@ -127,9 +124,7 @@ def build_status(conclusion: str) -> tuple[str, str]:
     return "failure", f"Copilot review concluded: {conclusion}"
 
 
-def post_status(
-    repo: str, sha: str, state: str, description: str, target_url: str = ""
-) -> None:
+def post_status(repo: str, sha: str, state: str, description: str, target_url: str = "") -> None:
     payload = {"state": state, "context": STATUS_CONTEXT, "description": description}
     if target_url:
         payload["target_url"] = target_url
@@ -204,17 +199,13 @@ def main() -> int:
         )
         return 1
     if readiness == "draft":
-        print(
-            "PR is still draft after waiting; Copilot review is not expected, leaving no status"
-        )
+        print("PR is still draft after waiting; Copilot review is not expected, leaving no status")
         return 0
 
     try:
         post_status(repo, sha, "pending", "Waiting for Copilot review to complete")
     except urllib.error.URLError as error:
-        print(
-            f"::warning::could not post pending {STATUS_CONTEXT} status (continuing): {error}"
-        )
+        print(f"::warning::could not post pending {STATUS_CONTEXT} status (continuing): {error}")
 
     outcome, run = await_copilot_run(repo, sha)
     if outcome == "not_requested":

@@ -8,7 +8,7 @@ We build thoughtful software, experiments, and tools with a focus on clean devel
 - A growing ecosystem built with care and curiosity
 
 ## Explore
-- 🌐 Organization: https://github.com/zyplux
-- 📦 Repositories: https://github.com/orgs/zyplux/repositories
+- 🌐 Organization: <https://github.com/zyplux>
+- 📦 Repositories: <https://github.com/orgs/zyplux/repositories>
 
 Thanks for stopping by — if something is useful, feel free to star it, use it, and share feedback.

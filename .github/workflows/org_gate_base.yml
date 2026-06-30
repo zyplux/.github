@@ -22,11 +22,11 @@ jobs:
           repository: zyplux/.github
           ref: main
           path: gate
-          sparse-checkout: scripts
+          sparse-checkout: apps/copilot-review-gate/src
       - name: Record Copilot review as a commit status
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
           SHA: ${{ github.event.pull_request.head.sha }}
-        run: python3 gate/scripts/copilot_review_gate.py
+        run: python3 gate/apps/copilot-review-gate/src/copilot_review_gate/__init__.py

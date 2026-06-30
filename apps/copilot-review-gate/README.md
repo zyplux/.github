@@ -6,6 +6,23 @@ ruleset can require Copilot review as a merge gate. A clean review records
 `success`; unresolved Copilot comments record `failure`, blocking the merge until
 they are resolved.
 
+*The three outcomes of a Copilot review, and how each reaches (or blocks) auto-merge:*
+
+```mermaid
+flowchart TD
+    review["Copilot reviews the head (ci runs too)"] --> q{"Comments left?"}
+    q -->|none| clean["copilot-review-complete = success"]
+    q -->|comments| blocked["copilot-review-complete = failure<br/>merge blocked"]
+    blocked --> triage["Triage each thread:<br/>fix the valid ones, reply to the false positives,<br/>resolve all"]
+    triage --> changed{"Any code changed?"}
+    changed -->|"yes — valid comments"| pushfix["just pr pushes a new head"]
+    pushfix --> review
+    changed -->|"no — all false positives"| refresh["just pr: nothing to push,<br/>so it flip-flips to re-run the watcher"]
+    refresh --> recount["watcher re-counts the now-resolved threads = 0"]
+    recount --> clean
+    clean --> merge(["ci green + threads resolved → auto-merge"])
+```
+
 ## Why a watcher is needed
 
 - The native `copilot-pull-request-reviewer` check-run shows up in the REST
@@ -24,16 +41,20 @@ The consuming repo's caller triggers on `pull_request`
 reusable workflow, which runs `scripts/copilot_review_gate.py`. The script:
 
 1. Waits for the PR's ready flip by polling live draft state, then waits a short
-   window for Copilot's check-run to appear. If it never appears (Copilot was not
-   triggered — e.g. a flip-flip), it posts a blocking `failure` within minutes
-   instead of hanging.
+   window for Copilot's check-run to appear. If it never appears (Copilot was never
+   triggered on this SHA — e.g. a hand-driven flip-flip on unreviewed commits), it
+   posts a blocking `failure` within minutes instead of hanging. A `just pr` refresh
+   flip-flips only on a SHA Copilot already reviewed, so its check-run is present and
+   this path is not hit.
 2. Once the check-run completes, it does **not** trust the conclusion alone (see
    [The completion race](#the-completion-race)). It waits for Copilot's review to
    be submitted on the head SHA, then counts unresolved review threads authored by
    Copilot:
    - zero → records `success`; the PR can auto-merge.
    - one or more → records `failure`, which blocks the merge. Resolve the threads,
-     then `just pr` (its flip → push → flip re-triggers Copilot on the new SHA).
+     then `just pr`: a code fix pushes a new SHA and re-triggers Copilot; with
+     nothing to push it flip-flips to re-run this watcher and re-count the
+     now-resolved threads (see [The draft-event race](#the-draft-event-race)).
 3. Filters the check-runs poll with `check_name` + `per_page=100`; the unfiltered
    endpoint paginates at 30, so the Copilot run could fall off the first page.
 4. Posts a definitive status and exits 0 for every verdict it can determine —
@@ -60,11 +81,18 @@ before it records success.
 ## The draft-event race
 
 Copilot's auto-review fires on `ready_for_review` **only when a push landed
-between the draft and ready flips** — flip → push → flip (`cz push-branch
---ready` does this and refuses when there is nothing to push). Flip → flip, or
-flip → flip → push (the push arrives as a `synchronize` on an already-ready PR),
-requests no review. Driving the flips by hand instead of through `just pr` is how
-a PR ends up ready with no Copilot review on its head SHA.
+between the draft and ready flips** — flip → push → flip (`cz push-branch --ready`
+does this). Flip → flip, or flip → flip → push (the push arrives as a `synchronize`
+on an already-ready PR), requests no review. Driving the flips by hand instead of
+through `just pr` is how a PR ends up ready with no Copilot review on its head SHA.
+
+That review-less flip → flip is itself useful: when there is nothing to push but
+Copilot already reviewed `HEAD` (you resolved its comments without a code change),
+`cz push-branch --ready` flip-flips on purpose to re-run *this watcher* — which
+re-counts the now-resolved threads and records `success` — without requesting a new
+review. It refuses the flip when Copilot has not reviewed `HEAD`, where it would
+strand the PR. Because that refresh carries no push, its `ready_for_review` does not
+race a `synchronize`, so its run spawns reliably.
 
 That cycle fires `synchronize` (draft) then `ready_for_review` (ready) in quick
 succession, and GitHub does not reliably spawn a workflow run for the
