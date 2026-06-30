@@ -63,4 +63,4 @@ clean:
 
 # Upsert every org ruleset in rulesets/ to GitHub (source of truth). Needs gh authenticated with org-admin scope.
 apply-org-ruleset:
-    bun run cz apply-org-rulesets
+    bun apps/apply-org-rulesets/src/index.ts

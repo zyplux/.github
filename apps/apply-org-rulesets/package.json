@@ -1,0 +1,18 @@
+{
+  "name": "@zyplux/apply-org-rulesets",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Upsert every org ruleset under rulesets/ to GitHub as the source of truth.",
+  "type": "module",
+  "bin": {
+    "apply-org-rulesets": "./src/index.ts"
+  },
+  "dependencies": {
+    "@zyplux/util": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@zyplux/tsconfig": "catalog:"
+  }
+}
