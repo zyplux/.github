@@ -15,14 +15,14 @@
     ],
     "catalog": {
       "@types/bun": "^1.3.14",
-      "@zyplux/cz": "^0.1.0",
-      "@zyplux/eslint-config": "^0.6.1",
+      "@zyplux/cz": "^0.2.1",
+      "@zyplux/eslint-config": "^0.6.2",
       "@zyplux/tsconfig": "^0.1.0",
-      "@zyplux/util": "^0.1.1",
-      "eslint": "^10.5.0",
-      "knip": "^6.20.0",
-      "npm-check-updates": "^22.2.7",
-      "prettier": "^3.8.4",
+      "@zyplux/util": "^0.1.4",
+      "eslint": "^10.6.0",
+      "knip": "^6.23.0",
+      "npm-check-updates": "^22.2.9",
+      "prettier": "^3.9.4",
       "typescript": "^6.0.3",
       "vitest": "^4.1.9",
       "zod": "^4.4.3"
@@ -35,7 +35,7 @@
     "lint": "eslint . --cache",
     "lint:fix": "bun run lint --fix",
     "test": "vitest run --passWithNoTests",
-    "upgrade": "npm-check-updates --format group",
+    "upgrade": "npm-check-updates --root --workspaces --format group",
     "cz": "cz"
   },
   "devDependencies": {

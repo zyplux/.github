@@ -8,6 +8,8 @@ alias t := test
 alias c := check
 alias u := upgrade
 alias ui := upgrade-interactive
+alias p := push
+alias pr := push-ready
 
 # List available recipes.
 default:
@@ -46,20 +48,34 @@ test name='':
 # Full gate across both workspaces: install, knip, typecheck, lint, test — autofix throughout.
 check: install knip typecheck lint test
 
-# Upgrade JS dependencies via ncu. Forwards extra args (e.g. `just u -i`).
+# Upgrade JS deps (ncu) and Python deps (uv lock/uv-bump/uv sync). Forwards extra args (e.g. `just u -i`).
 upgrade *args='':
     bun run upgrade -- {{ args }}
+    uv lock --upgrade
+    uvx uv-bump -v
+    uv sync --all-packages --all-groups
 
 # Interactively select and apply upgrades, then reinstall.
 upgrade-interactive:
     bun run upgrade -- -i
     bun install
+    uv lock --upgrade
+    uvx uv-bump -v
+    uv sync --all-packages --all-groups
+
+# Push the current branch and open or advance its draft PR. Forwards flags (e.g. `--hold`).
+push *flags:
+    bun run cz push-branch {{ flags }}
+
+# Push the current branch and mark the PR ready, enabling auto-merge.
+push-ready: (push "--ready")
 
 # Remove dependencies and caches from both workspaces.
 clean:
-    rm -rf node_modules
-    rm -rf .venv .pytest_cache .ruff_cache .rumdl_cache
-    find . -type d -name __pycache__ -prune -exec rm -rf {} +
+    rm -rf node_modules packages/*/node_modules tests/*/node_modules
+    rm -rf .venv .pytest_cache .ruff_cache .rumdl_cache .eslintcache .tsbuild
+    find . -type d \( -name __pycache__ -o -name .tsbuild -o -name dist -o -name .ruff_cache -o -name .pytest_cache \) -prune -exec rm -rf {} +
+    find . -type f \( -name '*.tsbuildinfo' -o -name '.eslintcache' -o -name '*.py[cod]' \) -delete
 
 # Upsert every org ruleset in rulesets/ to GitHub (source of truth). Needs gh authenticated with org-admin scope.
 apply-org-ruleset:

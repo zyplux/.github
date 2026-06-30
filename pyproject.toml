@@ -10,26 +10,8 @@ package = false
 [tool.uv.workspace]
 members = ["apps/copilot-review-gate"]
 
-[tool.ruff]
-line-length = 100
-target-version = "py314"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP", "ASYNC", "S", "RUF"]
-ignore = ["S101"]
-
-[tool.ruff.lint.per-file-ignores]
-"**/tests/**" = ["S"]
-# The gate's sole HTTP boundary: every request targets the hardcoded https
-# API_ROOT, so S310's file:/custom-scheme risk cannot arise — the audit is moot.
-"apps/copilot-review-gate/src/copilot_review_gate/__init__.py" = ["S310"]
-
 [tool.pytest.ini_options]
 testpaths = ["tests/copilot-review-gate"]
-
-[tool.pyrefly]
-project-includes = ["apps/copilot-review-gate/src", "tests/copilot-review-gate"]
-search-path = ["apps/copilot-review-gate/src"]
 
 [tool.vulture]
 paths = ["apps/copilot-review-gate/src", "tests/copilot-review-gate"]
@@ -37,13 +19,9 @@ paths = ["apps/copilot-review-gate/src", "tests/copilot-review-gate"]
 [dependency-groups]
 lint = [
     "ruff>=0.15.20",
-    "rumdl>=0.2.16",
+    "rumdl>=0.2.26",
     "vulture>=2.16",
-    "zyplux-cerberus>=0.4.1",
+    "zyplux-cerberus>=0.5.1",
 ]
-test = [
-    "pytest>=9.1.0",
-]
-type = [
-    "pyrefly>=1.0.0",
-]
+test = ["pytest>=9.1.1"]
+type = ["pyrefly>=1.1.1"]

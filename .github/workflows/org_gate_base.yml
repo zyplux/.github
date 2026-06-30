@@ -15,6 +15,7 @@ concurrency:
 jobs:
   copilot_review_watcher:
     runs-on: ubuntu-latest
+    container: ghcr.io/zyplux/ci:0.1.0
     steps:
       - name: Check out gate script
         uses: actions/checkout@v6
@@ -29,4 +30,4 @@ jobs:
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
           SHA: ${{ github.event.pull_request.head.sha }}
-        run: python3 gate/apps/copilot-review-gate/src/copilot_review_gate/__init__.py
+        run: uv run --python 3.14 gate/apps/copilot-review-gate/src/copilot_review_gate/cli.py
