@@ -49,11 +49,17 @@ check: install knip typecheck lint test
 # Upgrade JS dependencies via ncu. Forwards extra args (e.g. `just u -i`).
 upgrade *args='':
     bun run upgrade -- {{ args }}
+    uv lock --upgrade
+    uvx uv-bump -v
+    uv sync --all-packages --all-groups
 
 # Interactively select and apply upgrades, then reinstall.
 upgrade-interactive:
     bun run upgrade -- -i
     bun install
+    uv lock --upgrade
+    uvx uv-bump -v
+    uv sync --all-packages --all-groups
 
 # Remove dependencies and caches from both workspaces.
 clean:
