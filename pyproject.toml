@@ -24,11 +24,6 @@ ignore = ["S101"]
 # API_ROOT, so S310's file:/custom-scheme risk cannot arise — the audit is moot.
 "apps/copilot-review-gate/src/copilot_review_gate/__init__.py" = ["S310"]
 
-[tool.cerberus]
-# .github is org infrastructure with no CI gate of its own (it is excluded from
-# the org ruleset), so the CI-shaped checks and CODEOWNERS do not apply here.
-disable = ["ci-workflow", "ci-sequence", "cerberus-step", "codeowners"]
-
 [tool.pytest.ini_options]
 testpaths = ["tests/copilot-review-gate"]
 

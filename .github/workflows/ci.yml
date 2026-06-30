@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    container: ghcr.io/zyplux/ci:0.1.0
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - run: bun install --frozen-lockfile
+      - run: uv sync --locked --all-packages --all-groups
+      - run: bun run knip
+      - run: uv run --no-sync vulture
+      - run: bun run typecheck
+      - run: uv run --no-sync rumdl check
+      - run: uv run --no-sync rumdl fmt --check
+      - run: bun run lint
+      - run: bunx prettier --check .
+      - run: uv run --no-sync ruff check
+      - run: uv run --no-sync ruff format --check
+      - run: uv run --no-sync pyrefly check
+      - run: bun run test
+      - run: uv run --no-sync pytest
+      - run: uv run --no-sync cerberus
