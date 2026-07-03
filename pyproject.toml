@@ -11,7 +11,11 @@ package = false
 members = ["apps/copilot-review-gate"]
 
 [tool.pytest.ini_options]
+addopts = "--cov=copilot_review_gate --cov-report=term-missing"
 testpaths = ["tests/copilot-review-gate"]
+
+[tool.coverage.report]
+fail_under = 90
 
 [tool.vulture]
 paths = ["apps/copilot-review-gate/src", "tests/copilot-review-gate"]
@@ -21,7 +25,10 @@ lint = [
     "ruff>=0.15.20",
     "rumdl>=0.2.27",
     "vulture>=2.16",
-    "zyplux-cerberus==0.5.1",
+    "zyplux-cerberus==0.7.0",
 ]
-test = ["pytest>=9.1.1"]
+test = [
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+]
 type = ["pyrefly>=1.1.1"]
