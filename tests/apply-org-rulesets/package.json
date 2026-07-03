@@ -1,0 +1,19 @@
+{
+  "name": "@zyplux/tests-apply-org-rulesets",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "imports": {
+    "#fixtures": "./fixtures.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@zyplux/apply-org-rulesets": "workspace:*",
+    "@zyplux/tests-fixtures": "catalog:",
+    "@zyplux/tsconfig": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,4 +1,4 @@
 preset = "strict"
 
 project-includes = ["apps/copilot-review-gate/src", "tests/copilot-review-gate"]
-search-path = ["apps/copilot-review-gate/src"]
+search-path = ["apps/copilot-review-gate/src", "tests/copilot-review-gate/stories"]

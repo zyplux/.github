@@ -7,6 +7,16 @@
   "bin": {
     "apply-org-rulesets": "./src/index.ts"
   },
+  "exports": {
+    ".": {
+      "types": "./src/cli.ts",
+      "default": "./src/cli.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "imports": {
+    "#cli": "./src/cli.ts"
+  },
   "dependencies": {
     "@zyplux/util": "catalog:",
     "zod": "catalog:"

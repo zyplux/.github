@@ -1,4 +1,8 @@
 {
-  "extends": "@zyplux/tsconfig/bun.json",
-  "include": ["eslint.config.ts", "prettier.config.ts"]
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.tooling.json" },
+    { "path": "./apps/apply-org-rulesets" },
+    { "path": "./tests/apply-org-rulesets" }
+  ]
 }
