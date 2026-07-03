@@ -15,7 +15,7 @@ concurrency:
 jobs:
   copilot_review_watcher:
     runs-on: ubuntu-latest
-    container: ghcr.io/zyplux/ci:0.1.0
+    container: ghcr.io/zyplux/ci:0.1.1
     steps:
       - name: Check out gate script
         uses: actions/checkout@v6
