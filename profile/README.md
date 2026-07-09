@@ -1,14 +1,17 @@
-# Welcome to zyplux ✨
+# <img src="https://zyplux.ai/favicon.svg" alt="" width="24"> zyplux
 
-We build thoughtful software, experiments, and tools with a focus on clean developer experience and practical impact.
+<div align="center">
 
-## What you'll find here
-- Open-source projects from the zyplux organization
-- Experiments, utilities, and learning-in-public work
-- A growing ecosystem built with care and curiosity
+<img src="https://zyplux.ai/og.png" alt="Zyplux — Neural Intelligence Systems" width="640">
 
-## Explore
-- 🌐 Organization: <https://github.com/zyplux>
-- 📦 Repositories: <https://github.com/orgs/zyplux/repositories>
+**Neural Intelligence Systems** — thoughtful software and developer tooling, built with care.
 
-Thanks for stopping by — if something is useful, feel free to star it, use it, and share feedback.
+[zyplux.ai](https://zyplux.ai) · [Repositories](https://github.com/orgs/zyplux/repositories)
+
+</div>
+
+## In the open
+
+We publish our shared tooling for anyone to use: `@zyplux/*` packages on [npm](https://www.npmjs.com/org/zyplux), and [`zyplux-cerberus`](https://pypi.org/project/zyplux-cerberus/) and [`totchef`](https://pypi.org/project/totchef/) on PyPI. Each package's README covers usage.
+
+If something here is useful — star it, use it, and tell us what could be better.
