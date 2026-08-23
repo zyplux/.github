@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import urllib.request
 
-import copilot_review_gate.cli as gate
+import copilot_review_gate.copilot_review_complete as gate
 import pytest
 from fixtures import MAX_POLL_ATTEMPTS, PR, REPO, SHA, FakeGitHub, GateHarness
 

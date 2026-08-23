@@ -6,7 +6,7 @@ import urllib.request
 from dataclasses import dataclass, field
 from typing import Self, cast
 
-import copilot_review_gate.cli as gate
+import copilot_review_gate.copilot_review_complete as gate
 
 REPO = "zyplux/demo"
 PR = "1"
@@ -126,11 +126,8 @@ class GateHarness:
     def set_copilot_run_completed(self, conclusion: str = "success", details_url: str = "") -> None:
         self.set_check_run_reads([copilot_run("completed", conclusion, details_url)])
 
-    def set_reviews(self, reviews: list[gate.JsonObject]) -> None:
-        self.github.on("GET", f"repos/{REPO}/pulls/{PR}/reviews", reviews)
-
-    def fail_review_reads(self, error: Exception) -> None:
-        self.github.on("GET", f"repos/{REPO}/pulls/{PR}/reviews", error)
+    def set_reviews(self, *reads: Reply) -> None:
+        self.github.on("GET", f"repos/{REPO}/pulls/{PR}/reviews", *reads)
 
     def set_review_threads(self, *threads: gate.JsonObject) -> None:
         data = {"repository": {"pullRequest": {"reviewThreads": {"nodes": list(threads)}}}}

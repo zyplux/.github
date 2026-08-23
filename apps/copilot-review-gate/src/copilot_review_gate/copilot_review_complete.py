@@ -63,10 +63,13 @@ def _send(method: str, url: str, data: bytes | None, headers: dict[str, str]) ->
     if scheme != "https":
         msg = f"refusing to open non-https URL with scheme {scheme!r}"
         raise ValueError(msg)
-    request = urllib.request.Request(url, data=data, method=method)  # noqa: S310
+    request = urllib.request.Request(url, data=data, method=method)  # ruff: ignore[suspicious-url-open-usage]
     for key, value in headers.items():
         request.add_header(key, value)
-    with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT_SECONDS) as response:  # noqa: S310
+    with urllib.request.urlopen(  # ruff: ignore[suspicious-url-open-usage]
+        request,
+        timeout=HTTP_TIMEOUT_SECONDS,
+    ) as response:
         return response.read()
 
 
@@ -111,19 +114,6 @@ def fetch_copilot_run(repo: str, sha: str) -> JsonObject | None:
 
 def is_copilot_author(login: str) -> bool:
     return COPILOT_LOGIN_FRAGMENT in login.lower()
-
-
-def fetch_copilot_review(repo: str, pr: str, sha: str) -> JsonObject | None:
-    reviews = cast("list[JsonObject]", _request("GET", f"repos/{repo}/pulls/{pr}/reviews?per_page=100") or [])
-    return next(
-        (
-            review
-            for review in reviews
-            if review.get("commit_id") == sha
-            and is_copilot_author(cast("str", cast("JsonObject", review.get("user") or {}).get("login", "")))
-        ),
-        None,
-    )
 
 
 def count_unresolved_copilot_threads(repo: str, pr: str) -> int:
@@ -200,16 +190,22 @@ def await_copilot_run(repo: str, sha: str) -> tuple[str, JsonObject | None]:
     return ("incomplete", run)
 
 
-def await_copilot_review(repo: str, pr: str, sha: str) -> JsonObject | None:
+def await_copilot_review(repo: str, pr: str, sha: str) -> bool:
     for _ in range(REVIEW_POLL_ATTEMPTS):
-        try:
-            review = fetch_copilot_review(repo, pr, sha)
-        except urllib.error.URLError:
-            review = None
-        if review is not None:
-            return review
+        reviews: list[JsonObject] = []
+        with contextlib.suppress(urllib.error.URLError):
+            reviews = cast(
+                "list[JsonObject]",
+                _request("GET", f"repos/{repo}/pulls/{pr}/reviews?per_page=100") or [],
+            )
+        if any(
+            review.get("commit_id") == sha
+            and is_copilot_author(cast("str", cast("JsonObject", review.get("user") or {}).get("login", "")))
+            for review in reviews
+        ):
+            return True
         time.sleep(REVIEW_POLL_SECONDS)
-    return None
+    return False
 
 
 def _report_not_ready(repo: str, sha: str, readiness: str) -> int:
@@ -244,7 +240,9 @@ def _report_incomplete_run(repo: str, sha: str, outcome: str) -> int:
 
 
 def _report_review_threads(repo: str, pr: str, sha: str, target_url: str) -> int:
-    await_copilot_review(repo, pr, sha)
+    if not await_copilot_review(repo, pr, sha):
+        post_status(repo, sha, "error", "Copilot review was not observed after its check completed")
+        return 1
     try:
         unresolved = count_unresolved_copilot_threads(repo, pr)
     except urllib.error.URLError, RuntimeError, KeyError:
