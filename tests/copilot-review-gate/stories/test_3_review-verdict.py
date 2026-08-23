@@ -3,7 +3,8 @@ from __future__ import annotations
 import urllib.error
 from typing import TYPE_CHECKING
 
-from fixtures import PR_READY, SHA, PostedStatus, copilot_review, review_thread
+import pytest
+from fixtures import PR_READY, SHA, PostedStatus, Reply, copilot_review, review_thread
 
 if TYPE_CHECKING:
     from fixtures import GateHarness
@@ -39,7 +40,35 @@ def test_3_2_1_blocks_with_the_conclusion_without_counting_threads(copilot_gate:
     assert "cancelled" in copilot_gate.statuses[-1].description
 
 
-def test_3_3_1_blocks_the_merge_while_copilot_comments_stay_unresolved(copilot_gate: GateHarness) -> None:
+def test_3_3_1_waits_for_the_current_head_review_after_the_check_completes(copilot_gate: GateHarness) -> None:
+    copilot_gate.arrange_clean_pass()
+    copilot_gate.set_reviews([copilot_review("old-sha")], [copilot_review(SHA)])
+
+    exit_code = copilot_gate.run()
+
+    assert exit_code == 0
+    assert copilot_gate.statuses[-1].state == "success"
+
+
+@pytest.mark.parametrize(
+    "review_read",
+    [[copilot_review("old-sha")], urllib.error.URLError("network down")],
+)
+def test_3_3_2_fails_when_the_current_head_review_cannot_be_observed(
+    copilot_gate: GateHarness,
+    review_read: Reply,
+) -> None:
+    copilot_gate.arrange_clean_pass()
+    copilot_gate.set_reviews(review_read)
+
+    exit_code = copilot_gate.run()
+
+    assert exit_code == 1
+    assert copilot_gate.statuses[-1].state == "error"
+    assert "not observed" in copilot_gate.statuses[-1].description
+
+
+def test_3_4_1_blocks_the_merge_while_copilot_comments_stay_unresolved(copilot_gate: GateHarness) -> None:
     copilot_gate.arrange_clean_pass()
     copilot_gate.set_review_threads(review_thread(), review_thread())
 
@@ -50,7 +79,7 @@ def test_3_3_1_blocks_the_merge_while_copilot_comments_stay_unresolved(copilot_g
     assert "2 unresolved comments" in copilot_gate.statuses[-1].description
 
 
-def test_3_3_2_counts_only_unresolved_threads_authored_by_copilot(copilot_gate: GateHarness) -> None:
+def test_3_4_2_counts_only_unresolved_threads_authored_by_copilot(copilot_gate: GateHarness) -> None:
     copilot_gate.arrange_clean_pass()
     copilot_gate.set_review_threads(
         review_thread(resolved=True),
@@ -65,7 +94,7 @@ def test_3_3_2_counts_only_unresolved_threads_authored_by_copilot(copilot_gate: 
     assert "1 unresolved comment" in copilot_gate.statuses[-1].description
 
 
-def test_3_3_3_fails_the_job_when_the_threads_cannot_be_queried(copilot_gate: GateHarness) -> None:
+def test_3_4_3_fails_the_job_when_the_threads_cannot_be_queried(copilot_gate: GateHarness) -> None:
     copilot_gate.arrange_clean_pass()
     copilot_gate.fail_thread_query(urllib.error.URLError("network down"))
 
@@ -74,26 +103,3 @@ def test_3_3_3_fails_the_job_when_the_threads_cannot_be_queried(copilot_gate: Ga
     assert exit_code == 1
     assert copilot_gate.statuses[-1].state == "error"
     assert "review comments" in copilot_gate.statuses[-1].description
-
-
-def test_3_3_4_posts_the_verdict_even_when_no_review_matches_the_head_sha(copilot_gate: GateHarness) -> None:
-    copilot_gate.arrange_clean_pass()
-    copilot_gate.set_reviews([
-        copilot_review("some-other-sha"),
-        {"commit_id": SHA, "user": {"login": "realSergiy"}},
-    ])
-
-    exit_code = copilot_gate.run()
-
-    assert exit_code == 0
-    assert copilot_gate.statuses[-1].state == "success"
-
-
-def test_3_3_5_posts_the_verdict_even_when_the_review_reads_keep_erroring(copilot_gate: GateHarness) -> None:
-    copilot_gate.arrange_clean_pass()
-    copilot_gate.fail_review_reads(urllib.error.URLError("network down"))
-
-    exit_code = copilot_gate.run()
-
-    assert exit_code == 0
-    assert copilot_gate.statuses[-1].state == "success"

@@ -30,4 +30,4 @@ jobs:
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
           SHA: ${{ github.event.pull_request.head.sha }}
-        run: uv run --python 3.14 gate/apps/copilot-review-gate/src/copilot_review_gate/cli.py
+        run: uv run --python 3.14 gate/apps/copilot-review-gate/src/copilot_review_gate/copilot_review_complete.py

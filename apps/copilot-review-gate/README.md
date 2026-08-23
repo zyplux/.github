@@ -1,111 +1,108 @@
-# copilot-review-gate
+# Copilot review gate
 
-A reusable workflow that watches the GitHub Copilot pull-request review and
-records its result on a `copilot-review-complete` commit status, so the org
-ruleset can require Copilot review as a merge gate. A clean review records
-`success`; unresolved Copilot comments record `failure`, blocking the merge until
-they are resolved.
+This workflow converts GitHub Copilot's PR review into the `copilot-review-complete` commit status. Repository rules can require this status together with `ci` and GitHub's resolved-thread rule.
 
-*The three outcomes of a Copilot review, and how each reaches (or blocks) auto-merge:*
+The gate waits for a ready PR, observes Copilot's check-run and review for the current head commit, counts unresolved Copilot threads, and publishes the resulting status.
+
+## Org Gate
+
+*How does a PR event start the watcher and produce the `copilot-review-complete` status?*
 
 ```mermaid
-flowchart TD
-    review["Copilot reviews the head (ci runs too)"] --> q{"Comments left?"}
-    q -->|none| clean["copilot-review-complete = success"]
-    q -->|comments| blocked["copilot-review-complete = failure<br/>merge blocked"]
-    blocked --> triage["Triage each thread:<br/>fix the valid ones, reply to the false positives,<br/>resolve all"]
-    triage --> changed{"Any code changed?"}
-    changed -->|"yes — valid comments"| pushfix["just pr pushes a new head"]
-    pushfix --> review
-    changed -->|"no — all false positives"| refresh["just pr: nothing to push,<br/>so it flip-flips to re-run the watcher"]
-    refresh --> recount["watcher re-counts the now-resolved threads = 0"]
-    recount --> clean
-    clean --> merge(["ci green + threads resolved → auto-merge"])
+flowchart LR
+    OrgGate --> copilot-review-complete
+
+    subgraph OrgGate
+        Event(["On pull_request"]) --> org_gate["org_gate.yml"] --> org_gate_base --> JobCRW["job: copilot_review_watcher"] --> Step["step: copilot-review-complete.py"]
+    end    
+
+    subgraph copilot-review-complete["copilot-review-complete.py"]
+        Ready(["0: Fetch /pulls/{pr}"]) -->|is ready| Pending["10:<br/>Set gate state:<br/>#quot;state#quot;: #quot;pending#quot;"]
+        Pending --> Check{"20: Poll<br/>/commits/{sha}/check-runs<br/>where<br/>check_name=copilot-pull-request-reviewer"}
+        Check -->|conclusion = success| Review{"30: Poll latest SHA<br/>/pulls/{pr}/reviews<br/>by copilot 6 times"}
+        Review -->|found| Threads{"40: Query Unresolved Copilot Threads"}
+        Review -->|none| ReviewError(["error, 1"])
+        Threads -->|none| Success(["success, 0"])
+        Threads -->|one or more| Failure
+        Check -->|not found<br/>or<br/>conclusion != success| Failure(["failure, 0"])
+        Check -->|status != completed<br/>after 900s| TimedError(["error, 0"])        
+        
+        subgraph Exit["100: Exit"]
+          TimedError
+          Failure
+          Success
+          ReviewError                
+        end
+    end    
 ```
 
-## Why a watcher is needed
+## Workflow entry point
 
-- The native `copilot-pull-request-reviewer` check-run shows up in the REST
-  `commits/{sha}/check-runs` API but is excluded from the PR status rollup, so it
-  can never satisfy a required status check — it would stay "Expected" forever.
-- The Copilot check-run and review are created by the `github-actions` app using
-  `GITHUB_TOKEN`, and GitHub never starts a workflow from a `GITHUB_TOKEN`
-  -triggered event (recursion prevention). So a `check_run` or
-  `pull_request_review` watcher would never fire — the gate must trigger on the
-  human-initiated `pull_request` event and poll the check-runs API instead.
+[org_gate_base.yml](../../.github/workflows/org_gate_base.yml), calls [copilot_review_complete.py](src/copilot_review_gate/copilot_review_complete.py) with:
 
-## How it works
+- `REPO`: `owner/repository`
+- `PR`: PR number
+- `SHA`: current PR head commit
+- `GH_TOKEN`: workflow token with `checks: read`, `pull-requests: read`, and `statuses: write`
 
-The consuming repo's caller triggers on `pull_request`
-(`opened`, `reopened`, `synchronize`, `ready_for_review`) and delegates to this
-reusable workflow, which runs `scripts/copilot_review_gate.py`. The script:
+The workflow starts from PR events and reads live GitHub state throughout the run, giving Copilot's workflow-created activity a reliable watcher.
 
-1. Waits for the PR's ready flip by polling live draft state, then waits a short
-   window for Copilot's check-run to appear. If it never appears (Copilot was never
-   triggered on this SHA — e.g. a hand-driven flip-flip on unreviewed commits), it
-   posts a blocking `failure` within minutes instead of hanging. A `just pr` refresh
-   flip-flips only on a SHA Copilot already reviewed, so its check-run is present and
-   this path is not hit.
-2. Once the check-run completes, it does **not** trust the conclusion alone (see
-   [The completion race](#the-completion-race)). It waits for Copilot's review to
-   be submitted on the head SHA, then counts unresolved review threads authored by
-   Copilot:
-   - zero → records `success`; the PR can auto-merge.
-   - one or more → records `failure`, which blocks the merge. Resolve the threads,
-     then `just pr`: a code fix pushes a new SHA and re-triggers Copilot; with
-     nothing to push it flip-flips to re-run this watcher and re-count the
-     now-resolved threads (see [The draft-event race](#the-draft-event-race)).
-3. Filters the check-runs poll with `check_name` + `per_page=100`; the unfiltered
-   endpoint paginates at 30, so the Copilot run could fall off the first page.
-4. Posts a definitive status and exits 0 for every verdict it can determine —
-   success, or a blocking `failure`/`error`. It exits non-zero only when it
-   genuinely cannot read state (draft state, check-runs, or review threads
-   unreadable), so the job check goes red on a real machinery fault, never merely
-   on a blocked PR.
+## State read from GitHub
 
-## The completion race
+| State | Request | Fields and condition |
+|---|---|---|
+| 100: PR is ready | `GET /repos/{repo}/pulls/{pr}` | Ready when `draft` is `false`. |
+| 120: Poll Copilot check-runs | `GET /repos/{repo}/commits/{sha}/check-runs?check_name=copilot-pull-request-reviewer&per_page=100` | Select `check_runs[]` where `name` is `copilot-pull-request-reviewer`. |
+| Copilot check-run completed | Same check-runs request | Complete when `status` is `completed`. Then read `conclusion` and `details_url`. |
+| 130: Poll copilot reviews | `GET /repos/{repo}/pulls/{pr}/reviews?per_page=100` | Submitted when a review has `commit_id == SHA` and `user.login` contains `copilot`, case-insensitively. |
+| 140: Query **Unresolved Copilot Threads** | `POST /graphql` | Count a thread when `isResolved` is `false` and its first comment's `author.login` contains `copilot`. |
 
-Copilot marks its check-run `completed` with conclusion `success` **1–2 seconds
-before** it submits the review and its comments — measured directly on real PRs —
-and the conclusion is `success` even when the review leaves blocking comments. So
-the check-run carries no "has comments" signal and turns green slightly too early.
+Review submission is detected when the matching review record appears in the reviews response.
 
-Keying `copilot-review-complete` off the check-run alone is therefore unsafe: the
-status could go green in the gap before any review thread exists. In that gap `ci`
-and `copilot-review-complete` are both green and there are zero threads, so
-`required_review_thread_resolution` has nothing to block on and auto-merge can
-fire on a PR that is about to receive comments. The watcher closes the gap by
-waiting for the review submission (atomic with its comments) and counting threads
-before it records success.
+The exact **140: Unresolved Copilot Threads** query is:
 
-## The draft-event race
+```graphql
+query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100) {
+        nodes {
+          isResolved
+          comments(first: 1) {
+            nodes {
+              author {
+                login
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
 
-Copilot's auto-review fires on `ready_for_review` **only when a push landed
-between the draft and ready flips** — flip → push → flip (`cz push-branch --ready`
-does this). Flip → flip, or flip → flip → push (the push arrives as a `synchronize`
-on an already-ready PR), requests no review. Driving the flips by hand instead of
-through `just pr` is how a PR ends up ready with no Copilot review on its head SHA.
+The reviews request and thread query intentionally read at most 100 records, well above normal Copilot review volume.
 
-That review-less flip → flip is itself useful: when there is nothing to push but
-Copilot already reviewed `HEAD` (you resolved its comments without a code change),
-`cz push-branch --ready` flip-flips on purpose to re-run *this watcher* — which
-re-counts the now-resolved threads and records `success` — without requesting a new
-review. It refuses the flip when Copilot has not reviewed `HEAD`, where it would
-strand the PR. Because that refresh carries no push, its `ready_for_review` does not
-race a `synchronize`, so its run spawns reliably.
+## Check completion and review submission are separate
 
-That cycle fires `synchronize` (draft) then `ready_for_review` (ready) in quick
-succession, and GitHub does not reliably spawn a workflow run for the
-`ready_for_review` event when it lands within seconds of the push. So the gate
-must not gate on the event-payload draft flag or skip the `synchronize` run —
-every run polls the live draft state and records from whichever fires.
+GitHub exposes the check-run completion time as `check_runs[].completed_at` and the review submission time as `reviews[].submitted_at`. The gate synchronizes on the matching review record; the timestamps remain available for diagnosis.
 
-The concurrency group is keyed on `repository` + PR number + the event-payload
-`draft` flag. Keying on the draft flag puts the `synchronize` (draft) run and the
-`ready_for_review` (ready) run of one push in *separate* groups, so they do not
-cancel each other — both complete and post a success status. Cancelling one (a
-PR-number-only group) would leave a cancelled check-run on the head, which the PR
-UI renders as a failing check even though the surviving run succeeded. The
-redundant second run is cheap (the job is mostly idle polling). A genuinely newer
-push still supersedes the prior run within the same draft phase, and the key
-never collides across repos.
+Copilot can complete its check-run before its review record and comments become visible. Two reviews on [zyplux/zyplux#35](https://github.com/zyplux/zyplux/pull/35) showed gaps of three and four seconds. The gate therefore waits for the matching review record before it counts threads.
+
+## Wait limits
+
+| State | Frequency | Maximum wait |
+|---|---:|---:|
+| PR becomes ready | Every 5 seconds | About 200 seconds |
+| Copilot check-run appears | Every 15 seconds | About 180 seconds |
+| Copilot check-run completes | Every 15 seconds | About 15 minutes |
+| Matching Copilot review appears | Every 5 seconds | About 30 seconds |
+
+## Status written to GitHub
+
+Once the PR is ready, the gate first publishes `copilot-review-complete=pending`. It then publishes the final result with `POST /repos/{repo}/statuses/{sha}` using `context`, `state`, `description`, and, when available, the check-run's `details_url` as `target_url`.
+
+Exit code `0` means the gate reached a definite result, including a definite blocking result. Exit code `1` means it could not read enough GitHub state to make the normal decision.
+
+After resolving Copilot threads, run `just pr`. A push requests a new review for the new head commit; when no push is needed, `just pr` refreshes the gate so it can count the newly resolved threads.

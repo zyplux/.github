@@ -10,14 +10,16 @@
 
 ### 3.2.1 blocks with the conclusion without counting threads
 
-## 3.3 unresolved copilot threads
+## 3.3 review synchronization
 
-### 3.3.1 blocks the merge while copilot comments stay unresolved
+### 3.3.1 waits for the current-head review after the check completes
 
-### 3.3.2 counts only unresolved threads authored by copilot
+### 3.3.2 fails when the current-head review cannot be observed
 
-### 3.3.3 fails the job when the threads cannot be queried
+## 3.4 unresolved copilot threads
 
-### 3.3.4 posts the verdict even when no review matches the head sha
+### 3.4.1 blocks the merge while copilot comments stay unresolved
 
-### 3.3.5 posts the verdict even when the review reads keep erroring
+### 3.4.2 counts only unresolved threads authored by copilot
+
+### 3.4.3 fails the job when the threads cannot be queried
