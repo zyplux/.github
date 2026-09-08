@@ -14,11 +14,15 @@ POLL_ATTEMPT_SETTINGS = (
 )
 
 
+def skip_sleep(_: float) -> None:
+    pass
+
+
 @pytest.fixture
 def github(monkeypatch: pytest.MonkeyPatch) -> FakeGitHub:
     fake = FakeGitHub()
     monkeypatch.setattr(urllib.request, "urlopen", fake.urlopen)
-    monkeypatch.setattr(gate.time, "sleep", lambda *_: None)
+    monkeypatch.setattr(gate.time, "sleep", skip_sleep)
     monkeypatch.setenv("GH_TOKEN", "test-token")
     monkeypatch.setenv("REPO", REPO)
     monkeypatch.setenv("PR", PR)

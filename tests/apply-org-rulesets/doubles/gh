@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+case "$*" in
+  "api --paginate --slurp "*) cat "$RULESET_PAGES" ;;
+  "api --input "*) printf '%s\n' "gh $*" >> "$RULESET_COMMANDS" ;;
+  *) exit 1 ;;
+esac

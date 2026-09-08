@@ -1,0 +1,20 @@
+packages:
+  - apps/*
+  - tests/*
+
+catalog:
+  '@types/node': ^26.5.0
+  '@vitest/coverage-istanbul': ^5.0.0
+  '@zyplux/cz': ^0.8.0
+  '@zyplux/eslint-config': ^0.8.2
+  '@zyplux/tsconfig': ^0.3.0
+  '@zyplux/util': ^0.6.1
+  eslint: ^10.10.0
+  knip: ^6.34.0
+  prettier: ^3.9.6
+  typescript: ^6.0.3
+  vitest: ^5.0.0
+  zod: ^4.5.4
+
+minimumReleaseAge: 1440
+minimumReleaseAgeExcludePrune: true

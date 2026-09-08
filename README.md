@@ -4,7 +4,7 @@
 
 <img src="docs/assets/og.png" alt="Zyplux — Neural Intelligence Systems" width="640">
 
-**The [Zyplux](https://zyplux.ai) org-wide `.github` repo** — the public organization profile, the reusable CI gate every repo calls, and the org rulesets as code.
+**The [Zyplux](https://zyplux.ai) org-wide `.github` repo** — the public organization profile, the reusable Copilot review gate, and the org rulesets as code.
 
 </div>
 
@@ -16,13 +16,13 @@
 | [org_gate_base](.github/workflows/org_gate_base.yml)  | Reusable workflow gating merges on a completed Copilot review                  |
 | [copilot-review-gate](apps/copilot-review-gate)       | The app behind org_gate_base — records the review verdict as a commit status   |
 | [apply-org-rulesets](apps/apply-org-rulesets)         | Applies the org rulesets across every repo                                    |
-| [rulesets](rulesets)                                  | Org branch-protection rulesets as code (`default-branch-baseline`)            |
+| [rulesets](rulesets)                                  | Baseline protections and selectively applied Copilot review rules            |
 
 ## Reusable CI: org_gate_base
 
-Watches the GitHub Copilot pull-request review and records it on a requireable `copilot-review-complete` commit status (see [docs](apps/copilot-review-gate/README.md)). A clean review records `success`; unresolved Copilot comments record `failure`, blocking the merge until they are resolved. Every org repo that the `default-branch-baseline` ruleset covers must call it, or its PRs block forever on the missing status.
+Watches the GitHub Copilot pull-request review and records it on a requireable `copilot-review-complete` commit status (see [docs](apps/copilot-review-gate/README.md)). A clean review records `success`; unresolved Copilot comments record `failure`, blocking the merge until they are resolved. Every org repo that the `copilot-review` ruleset covers must call it, or its PRs block forever on the missing status.
 
-Copilot's review **can only** be re-triggered by a flip → push → flip cycle (the push **must** land _between_ the draft and ready flips). Drive pushes with `just pr` / `cz push-branch --ready`, never flip the PR by hand — see [more details here](apps/copilot-review-gate/README.md).
+The `copilot-review` ruleset requests reviews on new pushes to non-draft pull requests.
 
 Add `.github/workflows/org_gate.yml` to the consuming repo:
 
@@ -42,3 +42,11 @@ jobs:
   org_gate_base:
     uses: zyplux/.github/.github/workflows/org_gate_base.yml@main
 ```
+
+## Organization rulesets
+
+`default-branch-baseline` requires CI, one approving review, code-owner review, resolved review threads, and squash merges for every repository. It also protects the default branch from deletion and force pushes.
+
+`copilot-review` adds automatic Copilot reviews and the required `copilot-review-complete` status for every repository except `zyp-vps-configs`.
+
+Apply the version-controlled rules with `just apply-org-ruleset`. Files are applied alphabetically, so the Copilot ruleset is installed before the baseline relinquishes those requirements. After applying the exemption, remove `org_gate.yml` from `zyp-vps-configs`; its CI and human-review requirements remain active.

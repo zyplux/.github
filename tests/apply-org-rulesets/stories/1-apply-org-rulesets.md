@@ -10,6 +10,6 @@
 
 ### 1.2.1 creates a ruleset the org does not have yet
 
-### 1.2.2 updates an existing ruleset through its live id
+### 1.2.2 updates an existing ruleset from a later API page through its live id
 
 ### 1.2.3 matches live rulesets by declared name not by file name
