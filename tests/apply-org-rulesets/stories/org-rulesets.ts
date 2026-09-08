@@ -1,26 +1,45 @@
 import { applyOrgRulesets } from '@zyplux/apply-org-rulesets';
-import { cliTest } from '@zyplux/tests-fixtures/story';
+import { copyFile, chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { onTestFinished, test as base, vi } from 'vitest';
 
-const UPSERT_COMMAND = /^gh api --input \S+ --method (?:POST|PUT) /;
-
-export const test = cliTest
-  .extend('org', ({ shell }) => {
-    shell.on(UPSERT_COMMAND, '');
+export const test = base
+  .extend('directory', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'org-rulesets-'));
+    onTestFinished(() => rm(directory, { recursive: true, force: true }));
+    await mkdir(path.join(directory, 'config'));
+    await mkdir(path.join(directory, 'bin'));
+    const gh = path.join(directory, 'bin', 'gh');
+    await copyFile(new URL('../doubles/gh', import.meta.url), gh);
+    await chmod(gh, 0o700);
+    await writeFile(path.join(directory, 'commands'), '');
+    return directory;
+  })
+  .extend('logs', () => {
+    const logs = vi.spyOn(console, 'log').mockImplementation(() => {});
+    onTestFinished(() => logs.mockRestore());
+    return logs;
+  })
+  .extend('org', ({ directory }) => {
+    vi.stubEnv('PATH', `${path.join(directory, 'bin')}${path.delimiter}${process.env.PATH ?? ''}`);
+    vi.stubEnv('RULESET_PAGES', path.join(directory, 'pages'));
+    vi.stubEnv('RULESET_COMMANDS', path.join(directory, 'commands'));
+    onTestFinished(() => vi.unstubAllEnvs());
     return {
-      setLiveRulesets: (summaries: { id: number; name: string }[]) => {
-        shell.on('gh api --paginate --slurp orgs/zyplux/rulesets', JSON.stringify(summaries.map(summary => [summary])));
+      setLiveRulesets: (summaries: { id: number; name: string }[]) =>
+        writeFile(path.join(directory, 'pages'), JSON.stringify(summaries.map(summary => [summary]))),
+      upsertCommands: async () => {
+        const commands = await readFile(path.join(directory, 'commands'), 'utf8');
+        return commands.split('\n').filter(Boolean);
       },
-      upsertCommands: () => shell.commandsMatching(UPSERT_COMMAND),
     };
   })
-  .extend('rulesets', ({ tempDir }) => ({
-    apply: () => applyOrgRulesets(tempDir.path),
-    write: async (file: string, content: string) => {
-      await tempDir.write(file, content);
-    },
-    writeRuleset: async (file: string, name: string) => {
-      await tempDir.write(file, JSON.stringify({ name }));
-    },
+  .extend('rulesets', ({ directory }) => ({
+    apply: () => applyOrgRulesets(path.join(directory, 'config')),
+    write: (file: string, content: string) => writeFile(path.join(directory, 'config', file), content),
+    writeRuleset: (file: string, name: string) =>
+      writeFile(path.join(directory, 'config', file), JSON.stringify({ name })),
   }));
 
 export { describe, expect } from 'vitest';
