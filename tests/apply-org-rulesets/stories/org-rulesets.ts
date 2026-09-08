@@ -22,10 +22,12 @@ export const test = base
     return logs;
   })
   .extend('org', ({ directory }) => {
-    vi.stubEnv('PATH', `${path.join(directory, 'bin')}${path.delimiter}${process.env.PATH ?? ''}`);
+    vi.stubEnv('PATH', `${path.join(directory, 'bin')}${path.delimiter}${process.env['PATH'] ?? ''}`);
     vi.stubEnv('RULESET_PAGES', path.join(directory, 'pages'));
     vi.stubEnv('RULESET_COMMANDS', path.join(directory, 'commands'));
-    onTestFinished(() => vi.unstubAllEnvs());
+    onTestFinished(() => {
+      vi.unstubAllEnvs();
+    });
     return {
       setLiveRulesets: (summaries: { id: number; name: string }[]) =>
         writeFile(path.join(directory, 'pages'), JSON.stringify(summaries.map(summary => [summary]))),

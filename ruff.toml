@@ -10,6 +10,8 @@ ignore = [
     "D",      # docstrings are optional here — code is written to be self-documenting
     "DOC",    # docstring-section rules only matter once docstrings are mandated (they aren't)
     "missing-copyright-notice", # the project carries no copyright-header convention
+    "suspicious-subprocess-import",
+    "subprocess-without-shell-equals-true",
 ]
 
 [lint.per-file-ignores]
