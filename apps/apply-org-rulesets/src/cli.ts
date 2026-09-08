@@ -8,7 +8,7 @@ const ORG = 'zyplux';
 
 const listOrgRulesets = async () =>
   parseJson(
-    await readTrimmed($.gh.api(`orgs/${ORG}/rulesets`, { paginate: true, slurp: true })),
+    await readTrimmed($`gh api --paginate --slurp ${`orgs/${ORG}/rulesets`}`.quiet()),
     RulesetPagesSchema,
   ).flat();
 

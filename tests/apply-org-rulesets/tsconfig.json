@@ -1,5 +1,9 @@
 {
   "extends": "@zyplux/tsconfig/node.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "emitDeclarationOnly": false
+  },
   "include": ["."],
   "references": [{ "path": "../../apps/apply-org-rulesets" }]
 }
