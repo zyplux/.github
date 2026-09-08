@@ -1,0 +1,34 @@
+# Shared exceptions aligned with zyp-vps.
+
+[ci_check_sequence]
+off = true
+
+[workflow_toolchain_only]
+off = true
+
+[fallow]
+off = true
+
+[knip]
+off = true
+
+[justfile]
+off = true
+
+[story_tests_lockstep_ts]
+off = true
+
+[vitest]
+off = true
+
+[lib_ts_test_seam]
+off = true
+
+[cli_ts_test_seam]
+off = true
+
+[fixture_roles_ts]
+off = true
+
+[jscpd]
+off = true
