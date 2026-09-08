@@ -1,5 +1,5 @@
 {
-  "name": "default-branch-baseline",
+  "name": "copilot-review",
   "target": "branch",
   "enforcement": "active",
   "bypass_actors": [
@@ -13,23 +13,15 @@
     },
     "repository_name": {
       "include": ["~ALL"],
-      "exclude": []
+      "exclude": ["zyp-vps-configs"]
     }
   },
   "rules": [
-    { "type": "deletion" },
-    { "type": "non_fast_forward" },
-    { "type": "required_linear_history" },
     {
-      "type": "pull_request",
+      "type": "copilot_code_review",
       "parameters": {
-        "required_approving_review_count": 1,
-        "dismiss_stale_reviews_on_push": true,
-        "require_code_owner_review": true,
-        "require_last_push_approval": false,
-        "required_review_thread_resolution": true,
-        "required_reviewers": [],
-        "allowed_merge_methods": ["squash"]
+        "review_on_push": true,
+        "review_draft_pull_requests": false
       }
     },
     {
@@ -37,7 +29,7 @@
       "parameters": {
         "strict_required_status_checks_policy": true,
         "do_not_enforce_on_create": true,
-        "required_status_checks": [{ "context": "ci" }]
+        "required_status_checks": [{ "context": "copilot-review-complete" }]
       }
     }
   ]

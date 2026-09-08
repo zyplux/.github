@@ -1,15 +1,16 @@
 import { $, parseJson, readJson, readTrimmed } from '@zyplux/util';
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
-import * as z from 'zod';
+
+import { RulesetFileSchema, RulesetPagesSchema } from './contracts.ts';
 
 const ORG = 'zyplux';
 
-const RulesetSummariesSchema = z.array(z.object({ id: z.number(), name: z.string() }));
-const RulesetFileSchema = z.object({ name: z.string() });
-
 const listOrgRulesets = async () =>
-  parseJson(await readTrimmed($.gh.api(`orgs/${ORG}/rulesets`, { paginate: true })), RulesetSummariesSchema);
+  parseJson(
+    await readTrimmed($.gh.api(`orgs/${ORG}/rulesets`, { paginate: true, slurp: true })),
+    RulesetPagesSchema,
+  ).flat();
 
 export const applyOrgRulesets = async (rulesetsDir: string) => {
   const entries = await readdir(rulesetsDir);

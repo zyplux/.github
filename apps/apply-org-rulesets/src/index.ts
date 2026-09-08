@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import { applyOrgRulesets } from '#cli';
 
 const RULESETS_DIR = 'rulesets';

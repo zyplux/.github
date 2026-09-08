@@ -1,4 +1,7 @@
 preset = "strict"
 
 project-includes = ["apps/copilot-review-gate/src", "tests/copilot-review-gate"]
+disable-project-excludes-heuristics = true
+project-excludes = ["**/node_modules"]
+use-ignore-files = false
 search-path = ["apps/copilot-review-gate/src", "tests/copilot-review-gate/stories"]

@@ -1,4 +1,4 @@
-import { describe, expect, test } from '#fixtures';
+import { describe, expect, test } from './org-rulesets.ts';
 
 describe('1.1 discovering ruleset files', () => {
   test('1.1.1 applies every json file in name order', async ({ logs, org, rulesets }) => {
@@ -33,8 +33,11 @@ describe('1.2 upserting each ruleset against the live org', () => {
     expect(logs.logLines).toEqual(["created org ruleset 'alpha'"]);
   });
 
-  test('1.2.2 updates an existing ruleset through its live id', async ({ logs, org, rulesets }) => {
-    org.setLiveRulesets([{ id: 42, name: 'alpha' }]);
+  test('1.2.2 updates an existing ruleset from a later API page through its live id', async ({ logs, org, rulesets }) => {
+    org.setLiveRulesets([
+      { id: 7, name: 'beta' },
+      { id: 42, name: 'alpha' },
+    ]);
     await rulesets.writeRuleset('baseline.json', 'alpha');
 
     await rulesets.apply();
