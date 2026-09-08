@@ -1,24 +1,28 @@
 import { applyOrgRulesets } from '@zyplux/apply-org-rulesets';
-import { copyFile, chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { onTestFinished, test as base, vi } from 'vitest';
+import { test as base, onTestFinished, vi } from 'vitest';
+
+const EXECUTABLE_MODE = 0o700;
 
 export const test = base
   .extend('directory', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'org-rulesets-'));
-    onTestFinished(() => rm(directory, { recursive: true, force: true }));
+    onTestFinished(() => rm(directory, { force: true, recursive: true }));
     await mkdir(path.join(directory, 'config'));
     await mkdir(path.join(directory, 'bin'));
     const gh = path.join(directory, 'bin', 'gh');
     await copyFile(new URL('../doubles/gh', import.meta.url), gh);
-    await chmod(gh, 0o700);
+    await chmod(gh, EXECUTABLE_MODE);
     await writeFile(path.join(directory, 'commands'), '');
     return directory;
   })
   .extend('logs', () => {
-    const logs = vi.spyOn(console, 'log').mockImplementation(() => {});
-    onTestFinished(() => logs.mockRestore());
+    const logs = vi.spyOn(console, 'log').mockReturnValue(undefined);
+    onTestFinished(() => {
+      logs.mockRestore();
+    });
     return logs;
   })
   .extend('org', ({ directory }) => {
