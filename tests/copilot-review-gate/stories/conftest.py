@@ -9,20 +9,20 @@ from fixtures import MAX_POLL_ATTEMPTS, PR, REPO, SHA, FakeGitHub, GateHarness
 POLL_ATTEMPT_SETTINGS = (
     "READY_POLL_ATTEMPTS",
     "APPEAR_POLL_ATTEMPTS",
-    "COMPLETE_POLL_ATTEMPTS",
     "REVIEW_POLL_ATTEMPTS",
 )
 
 
-def skip_sleep(_: float) -> None:
-    pass
+@pytest.fixture
+def poll_sleeps() -> list[float]:
+    return []
 
 
 @pytest.fixture
-def github(monkeypatch: pytest.MonkeyPatch) -> FakeGitHub:
+def github(monkeypatch: pytest.MonkeyPatch, poll_sleeps: list[float]) -> FakeGitHub:
     fake = FakeGitHub()
     monkeypatch.setattr(urllib.request, "urlopen", fake.urlopen)
-    monkeypatch.setattr(gate.time, "sleep", skip_sleep)
+    monkeypatch.setattr(gate.time, "sleep", poll_sleeps.append)
     monkeypatch.setenv("GH_TOKEN", "test-token")
     monkeypatch.setenv("REPO", REPO)
     monkeypatch.setenv("PR", PR)

@@ -11,3 +11,5 @@
 ### 2.2.1 keeps polling an in progress run until it completes
 
 ### 2.2.2 blocks the merge when the run never completes in time
+
+### 2.2.3 accepts reviews that finish within thirty minutes
