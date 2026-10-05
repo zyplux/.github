@@ -24,7 +24,7 @@ READY_POLL_ATTEMPTS = 40
 READY_POLL_SECONDS = 5
 APPEAR_POLL_ATTEMPTS = 12
 APPEAR_POLL_SECONDS = 15
-COMPLETE_POLL_ATTEMPTS = 60
+COMPLETE_POLL_ATTEMPTS = 120
 COMPLETE_POLL_SECONDS = 15
 REVIEW_POLL_ATTEMPTS = 6
 REVIEW_POLL_SECONDS = 5
@@ -181,9 +181,11 @@ def await_copilot_run(repo: str, sha: str) -> tuple[str, JsonObject | None]:
     if run is None:
         return ("not_requested", None) if fetched_ok else ("unqueryable", None)
 
-    for _ in range(COMPLETE_POLL_ATTEMPTS):
+    for attempt in range(COMPLETE_POLL_ATTEMPTS + 1):
         if run is not None and run.get("status") == "completed":
             return ("completed", run)
+        if attempt == COMPLETE_POLL_ATTEMPTS:
+            break
         time.sleep(COMPLETE_POLL_SECONDS)
         with contextlib.suppress(urllib.error.URLError):
             run = fetch_copilot_run(repo, sha)

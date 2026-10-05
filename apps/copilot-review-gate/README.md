@@ -25,7 +25,7 @@ flowchart LR
         Threads -->|none| Success(["success, 0"])
         Threads -->|one or more| Failure
         Check -->|not found<br/>or<br/>conclusion != success| Failure(["failure, 0"])
-        Check -->|status != completed<br/>after 900s| TimedError(["error, 0"])        
+        Check -->|status != completed<br/>after 1800s| TimedError(["error, 0"])
         
         subgraph Exit["100: Exit"]
           TimedError
@@ -96,8 +96,10 @@ Copilot can complete its check-run before its review record and comments become 
 |---|---:|---:|
 | PR becomes ready | Every 5 seconds | About 200 seconds |
 | Copilot check-run appears | Every 15 seconds | About 180 seconds |
-| Copilot check-run completes | Every 15 seconds | About 15 minutes |
+| Copilot check-run completes | Every 15 seconds | About 30 minutes |
 | Matching Copilot review appears | Every 5 seconds | About 30 seconds |
+
+The watcher job has a 40-minute timeout to allow for checkout, the other wait phases, and GitHub API requests alongside the completion window.
 
 ## Status written to GitHub
 
