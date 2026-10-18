@@ -1,11 +1,33 @@
-#!/usr/bin/env node
-import { applyOrgRulesets } from '#cli';
+import { $, parseJson, readJson, readTrimmed } from '@zyplux/util';
+import { readdir } from 'node:fs/promises';
+import path from 'node:path';
 
-const RULESETS_DIR = 'rulesets';
+import { RulesetFileSchema, RulesetPagesSchema } from './contracts.ts';
 
-try {
-  await applyOrgRulesets(RULESETS_DIR);
-} catch (error) {
-  console.error(`error: ${error instanceof Error ? error.message : String(error)}`);
-  process.exitCode = 1;
-}
+const ORG = 'zyplux';
+
+const listOrgRulesets = async () =>
+  parseJson(
+    await readTrimmed($`gh api --paginate --slurp ${`orgs/${ORG}/rulesets`}`.quiet()),
+    RulesetPagesSchema,
+  ).flat();
+
+export const applyOrgRulesets = async (rulesetsDir: string) => {
+  const entries = await readdir(rulesetsDir);
+  const files = entries.filter(name => name.endsWith('.json')).toSorted((a, b) => a.localeCompare(b));
+  const live = await listOrgRulesets();
+
+  for (const file of files) {
+    const filePath = path.join(rulesetsDir, file);
+    const { name } = await readJson(filePath, RulesetFileSchema);
+    const match = live.find(ruleset => ruleset.name === name);
+
+    if (match === undefined) {
+      await $.gh.api(`orgs/${ORG}/rulesets`, { input: filePath, method: 'POST' });
+      console.log(`created org ruleset '${name}'`);
+    } else {
+      await $.gh.api(`orgs/${ORG}/rulesets/${match.id}`, { input: filePath, method: 'PUT' });
+      console.log(`updated org ruleset '${name}' (#${match.id})`);
+    }
+  }
+};

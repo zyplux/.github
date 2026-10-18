@@ -2,7 +2,7 @@
 name: resolve-pr-review-comments
 description: >
   Loop through GitHub Copilot review comments on a pull request until the
-  `copilot-review-complete` gate reads clean: read each unresolved Copilot thread,
+  `bot-review-complete` gate reads clean: read each unresolved Copilot thread,
   decide whether it is right, fix the code where you agree and reply with reasoning
   where you don't, resolve every thread, run `just pr` to refresh the gate (it
   pushes fixes to re-trigger a fresh review, or refreshes in place when nothing
@@ -29,43 +29,9 @@ not a resolvable thread — read it for context only.
 
 ## How merge is gated
 
-The org gate (a reusable workflow) watches Copilot's review and posts a required
-`copilot-review-complete` commit status on each head: `success` when no unresolved
-Copilot threads remain, else `failure`. Merging needs that status `success`, `ci`
-green, and every thread resolved. The native `copilot-pull-request-reviewer`
-check-run is **not** the gate — it is excluded from the status rollup; key off
-`copilot-review-complete` instead.
+The org gate publishes `bot-review-complete` for the current head. Both Copilot and Codex Code Review must finish cleanly, except that an explicit quota denial from one bot permits a clean review from the other. Unresolved findings from either bot block merging; pending, missing, and stale reviews remain blocking.
 
-*Who does what to clear the gate — automatic steps (rounded, blue), your actions (square, green), gate status (pill, grey), decisions (diamond); edge labels are the condition or effect:*
-
-```mermaid
-flowchart TD
-    review("Copilot reviews the head<br/>ci runs in parallel"):::auto
-    review -->|no comments| ok(["copilot-review-complete = success"]):::state
-    review -->|comments left| fail(["copilot-review-complete = failure"]):::state
-    fail -->|"merge blocked — you must triage"| valid{"Any valid comment<br/>needing a code change?"}:::agent
-    valid -->|yes| fix["Fix the code, post replies, resolve all threads"]:::agent
-    fix --> commit["git commit the fixes — `just pr` pushes commits, not the working tree"]:::agent
-    commit --> prFix["Run `just pr` — flips to draft, pushes the commits, then flips to ready"]:::agent
-    prFix -->|"new head re-triggers Copilot"| review
-    valid -->|"no — all false positives"| reply["Reply to each, resolve all threads"]:::agent
-    reply --> prRefresh["Run `just pr` — flips draft→ready, nothing to push"]:::agent
-    prRefresh -->|"re-runs the gate watcher"| recount("Org-gate watcher re-counts<br/>resolved threads → 0"):::auto
-    recount --> ok
-    ok -->|"ci green + threads resolved"| merge("Auto-merge merges the PR"):::auto
-
-    classDef auto stroke:#268bd2,color:#268bd2,stroke-width:2px
-    classDef agent stroke:#859900,color:#859900,stroke-width:2px
-    classDef state stroke:#657b83,color:#657b83,stroke-width:2px
-```
-
-This skill walks that flow: resolve the current Copilot threads, run `just pr` to
-refresh the gate, wait for its verdict, repeat until `copilot-review-complete` is
-`success`. Auto-merge is safe to leave on throughout: while any Copilot thread is
-unresolved the status is `failure`, so nothing merges in the gap between resolving
-threads and the `just pr` that refreshes the gate — the merge only ever fires on a
-head the watcher has just certified clean. Let `just pr` and the gate decide when,
-rather than hand-managing auto-merge with `--hold`.
+This skill addresses Copilot threads. A blocking Codex finding or missing Codex review must be addressed separately before the aggregate gate can pass. Refresh the gate after resolving threads with the `org_gate` workflow dispatch, or use `just pr` for its ready transition. Stop retrying a quota-exhausted bot.
 
 ## Step 1 — identify the PR
 
@@ -81,13 +47,13 @@ stop and ask the user for the PR number — do not guess.
 
 ## Step 2 — check the gate, then read the threads
 
-Read `copilot-review-complete` on the head; if it is already `success`, skip to
+Read `bot-review-complete` on the head; if it is already `success`, skip to
 Step 5.
 
 ```bash
 SHA=$(git rev-parse HEAD)
 gh api "repos/$OWNER/$REPO/commits/$SHA/statuses" \
-  --jq 'map(select(.context=="copilot-review-complete"))[0].state // "none"'
+  --jq 'map(select(.context=="bot-review-complete"))[0].state // "none"'
 ```
 
 Otherwise read the unresolved Copilot threads and the diff for the cited files, so
@@ -168,13 +134,13 @@ then re-run.
   now-resolved threads. It permits this only because Copilot already reviewed HEAD; it
   still refuses if you pre-pushed unreviewed commits.
 
-Then wait for `copilot-review-complete` on the current head to settle:
+Then wait for `bot-review-complete` on the current head to settle:
 
 ```bash
 SHA=$(git rev-parse HEAD)
 for _ in $(seq 1 120); do
   STATE=$(gh api "repos/$OWNER/$REPO/commits/$SHA/statuses" \
-    --jq 'map(select(.context=="copilot-review-complete"))[0].state // "none"')
+    --jq 'map(select(.context=="bot-review-complete"))[0].state // "none"')
   case "$STATE" in success|failure|error) break;; esac
   sleep 10
 done
@@ -190,7 +156,7 @@ done
 
 ## Step 5 — confirm the merge and report
 
-Reached when `copilot-review-complete` is `success`. The clean head satisfies every
+Reached when `bot-review-complete` is `success`. The aggregate review requirement is satisfied; confirm every other
 required check, so ensure auto-merge is enabled and let it merge — a `just pr` from
 Step 4 may have already enabled it (or the PR may have merged already), so this is
 idempotent:
@@ -210,6 +176,6 @@ reason given), and the final outcome.
   retry blindly.
 - Past 100 threads or 50 comments in a thread, paginate with the GraphQL
   `pageInfo`/`endCursor` cursors rather than silently truncating.
-- Each push is a fresh head with no `copilot-review-complete` yet, so merge can only
+- Each push is a fresh head with no `bot-review-complete` yet, so merge can only
   happen once the gate re-posts `success` on the latest head with all threads
   resolved — the loop relies on this, it doesn't race it.

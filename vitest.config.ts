@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     coverage: {
       enabled: true,
-      exclude: ['apps/apply-org-rulesets/src/index.ts'],
+      exclude: ['apps/apply-org-rulesets/src/cli.ts'],
       include: ['apps/apply-org-rulesets/src/**'],
       provider: 'istanbul',
       thresholds: {

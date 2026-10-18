@@ -2,6 +2,11 @@ name: org_gate_base
 
 on:
   workflow_call:
+    inputs:
+      pr:
+        description: Pull request number for a manual refresh
+        type: string
+        default: ''
 
 permissions:
   statuses: write
@@ -9,11 +14,11 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: org-gate-${{ github.repository }}-pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.draft }}
+  group: org-gate-${{ github.repository }}-pr-${{ github.event.pull_request.number || github.event.issue.number || inputs.pr }}
   cancel-in-progress: true
 
 jobs:
-  copilot_review_watcher:
+  bot_review_watcher:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     container: ghcr.io/zyplux/ci:0.1.1
@@ -24,11 +29,11 @@ jobs:
           repository: zyplux/.github
           ref: main
           path: gate
-          sparse-checkout: apps/copilot-review-gate/src
-      - name: Record Copilot review as a commit status
+          sparse-checkout: apps/bot-review-gate/src
+      - name: Record aggregate bot review as a commit status
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number }}
+          PR: ${{ github.event.pull_request.number || github.event.issue.number || inputs.pr }}
           SHA: ${{ github.event.pull_request.head.sha }}
-        run: uv run --python 3.14 gate/apps/copilot-review-gate/src/copilot_review_gate/copilot_review_complete.py
+        run: uv run --python 3.14 gate/apps/bot-review-gate/src/bot_review_gate/bot_review_complete.py

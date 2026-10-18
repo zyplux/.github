@@ -75,4 +75,4 @@ clean *flags:
 
 # Upsert every org ruleset in rulesets/ to GitHub (source of truth). Needs gh authenticated with org-admin scope.
 apply-org-ruleset:
-    pnpm exec node apps/apply-org-rulesets/src/index.ts
+    pnpm exec node apps/apply-org-rulesets/src/cli.ts

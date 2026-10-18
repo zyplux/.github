@@ -8,27 +8,27 @@ requires-python = ">=3.14"
 package = false
 
 [tool.uv.workspace]
-members = ["apps/copilot-review-gate"]
+members = ["apps/bot-review-gate"]
 
 [tool.pytest.ini_options]
-addopts = "--cov=copilot_review_gate --cov-report=term-missing"
-testpaths = ["tests/copilot-review-gate"]
+addopts = "--cov=bot_review_gate --cov-report=term-missing"
+testpaths = ["tests/bot-review-gate"]
 
 [tool.coverage.report]
 fail_under = 90
 
 [tool.vulture]
-paths = ["apps/copilot-review-gate/src", "tests/copilot-review-gate"]
+paths = ["apps/bot-review-gate/src", "tests/bot-review-gate"]
 
 [dependency-groups]
 lint = [
-    "ruff>=0.16.6",
-    "rumdl>=0.2.68",
+    "ruff>=0.17.1",
+    "rumdl>=0.3.0",
     "vulture>=2.16",
-    "zyplux-cerberus>=0.20.0",
+    "zyplux-cerberus>=0.22.2",
 ]
 test = [
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
 ]
-type = ["pyrefly>=1.2.0"]
+type = ["pyrefly>=1.4.0"]

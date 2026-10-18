@@ -29,7 +29,7 @@
       "parameters": {
         "strict_required_status_checks_policy": true,
         "do_not_enforce_on_create": true,
-        "required_status_checks": [{ "context": "copilot-review-complete" }]
+        "required_status_checks": [{ "context": "bot-review-complete" }]
       }
     }
   ]

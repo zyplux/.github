@@ -1,0 +1,135 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import pytest
+from fixtures import (
+    COPILOT_QUOTA_MESSAGE,
+    LATER,
+    PostedStatus,
+    codex_comment,
+    codex_quota,
+    copilot_review,
+    review_thread,
+    thread_page,
+)
+
+if TYPE_CHECKING:
+    from fixtures import GateHarness
+
+
+@pytest.mark.parametrize(
+    ("copilot", "codex", "expected"),
+    [
+        ("clean", "clean", "success"),
+        ("quota", "clean", "success"),
+        ("clean", "quota", "success"),
+        ("quota", "quota", "failure"),
+        ("missing", "clean", "pending"),
+        ("clean", "missing", "pending"),
+        ("failed", "clean", "failure"),
+        ("quota", "findings", "failure"),
+        ("findings", "quota", "failure"),
+    ],
+)
+def test_3_1_1_requires_clean_reviews_from_every_available_bot(
+    bot_gate: GateHarness, copilot: str, codex: str, expected: str
+) -> None:
+    bot_gate.arrange_clean_pass()
+    if copilot == "quota":
+        bot_gate.set_check_run_reads([])
+        bot_gate.set_reviews([copilot_review(body=COPILOT_QUOTA_MESSAGE)])
+    elif copilot == "missing":
+        bot_gate.set_check_run_reads([])
+    elif copilot == "failed":
+        bot_gate.set_copilot_run_completed("cancelled")
+    elif copilot == "findings":
+        bot_gate.set_review_threads(review_thread())
+    if codex == "quota":
+        bot_gate.set_codex_quota()
+    elif codex == "missing":
+        bot_gate.set_comments([])
+    elif codex == "findings":
+        bot_gate.set_comments([codex_comment(has_findings=True, unresolved=True)])
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == expected
+    assert {status.context for status in bot_gate.statuses} == {"bot-review-complete"}
+
+
+def test_3_1_2_links_success_to_the_review_evidence(bot_gate: GateHarness) -> None:
+    bot_gate.arrange_clean_pass()
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1] == PostedStatus(
+        "success", "Copilot and Codex reviews are clean", "https://github.com/comment/1", "bot-review-complete"
+    )
+
+
+@pytest.mark.parametrize(
+    "author",
+    ["Copilot", "copilot-pull-request-reviewer[bot]", "chatgpt-codex-connector", "chatgpt-codex-connector[bot]"],
+)
+def test_3_2_1_blocks_unresolved_findings_from_either_bot(bot_gate: GateHarness, author: str) -> None:
+    bot_gate.arrange_clean_pass()
+    bot_gate.set_review_threads(review_thread(author))
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "failure"
+    assert "1 unresolved" in bot_gate.statuses[-1].description
+
+
+def test_3_2_2_counts_only_unresolved_bot_threads(bot_gate: GateHarness) -> None:
+    bot_gate.arrange_clean_pass()
+    bot_gate.set_review_threads(
+        review_thread(resolved=True), review_thread("maintainer"), review_thread(None), review_thread("copilot-helper")
+    )
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "success"
+
+
+def test_3_2_3_observes_thread_resolution_while_watching(bot_gate: GateHarness) -> None:
+    bot_gate.arrange_clean_pass()
+    bot_gate.github.on("POST", "graphql", thread_page(review_thread()), thread_page())
+
+    assert bot_gate.run() == 0
+    assert [status.state for status in bot_gate.statuses] == ["pending", "failure", "success"]
+
+
+def test_3_2_4_paginates_review_threads_before_passing(bot_gate: GateHarness) -> None:
+    bot_gate.arrange_clean_pass()
+    first = thread_page(cursor="next")
+    second = thread_page(review_thread("chatgpt-codex-connector"))
+    bot_gate.github.on("POST", "graphql", *[page for _ in range(4) for page in (first, second)])
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "failure"
+    assert any(body and '"cursor": "next"' in body for _, url, body in bot_gate.github.requests if url == "/graphql")
+
+
+def test_3_2_5_accepts_resolved_findings_in_the_codex_summary(bot_gate: GateHarness) -> None:
+    bot_gate.arrange_clean_pass()
+    bot_gate.set_comments([codex_comment(has_findings=True)])
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "success"
+
+
+@pytest.mark.parametrize("commit_sha", ["headsha", "older-head"])
+def test_3_2_6_quota_denial_does_not_erase_known_codex_findings(bot_gate: GateHarness, commit_sha: str) -> None:
+    bot_gate.arrange_clean_pass()
+    quota = {**codex_quota(), "created_at": LATER}
+    bot_gate.set_comments([codex_comment(commit_sha, status="failed", has_findings=True, unresolved=True), quota])
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "failure"
+
+
+@pytest.mark.parametrize("state", ["failed", "cancelled", "error"])
+def test_3_3_1_codex_failures_do_not_count_as_unavailability(bot_gate: GateHarness, state: str) -> None:
+    bot_gate.arrange_clean_pass()
+    bot_gate.set_comments([codex_comment(status=state)])
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "failure"
