@@ -1,7 +1,8 @@
 preset = "strict"
+min-severity = "warn"
 
-project-includes = ["apps/copilot-review-gate/src", "tests/copilot-review-gate"]
+project-includes = ["apps/bot-review-gate/src", "tests/bot-review-gate"]
 disable-project-excludes-heuristics = true
 project-excludes = ["**/node_modules"]
 use-ignore-files = false
-search-path = ["apps/copilot-review-gate/src", "tests/copilot-review-gate/stories"]
+search-path = ["apps/bot-review-gate/src", "tests/bot-review-gate/stories"]

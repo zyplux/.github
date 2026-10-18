@@ -41,9 +41,10 @@ lint:
     uv run ruff check --fix
     uv run ruff format
 
-# Run tests for both workspaces, JS and Python in parallel. Optional arg filters by test name, skipping coverage; never fails when nothing matches.
-test name='':
-    pnpm run {{ if name == '' { '--silent cz test' } else { 'cz test ' + quote(name) } }}
+# Run JavaScript tests, then Python tests.
+test:
+    pnpm run test
+    uv run pytest
 
 # Verify org invariants with cerberus, over the coverage report `test` regenerates.
 cerberus:
@@ -75,4 +76,4 @@ clean *flags:
 
 # Upsert every org ruleset in rulesets/ to GitHub (source of truth). Needs gh authenticated with org-admin scope.
 apply-org-ruleset:
-    pnpm exec node apps/apply-org-rulesets/src/index.ts
+    pnpm exec node apps/apply-org-rulesets/src/cli.ts

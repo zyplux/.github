@@ -1,7 +1,10 @@
 import { defineProject } from 'vitest/config';
 
-export default defineProject({
-  test: {
-    include: ['stories/**/*.test.ts'],
-  },
-});
+const buildConfig = () =>
+  defineProject({
+    test: {
+      include: ['stories/**/*.test.ts'],
+    },
+  });
+
+export default buildConfig;
