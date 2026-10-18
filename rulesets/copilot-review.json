@@ -12,8 +12,8 @@
       "exclude": []
     },
     "repository_name": {
-      "include": ["~ALL"],
-      "exclude": ["zyp-vps-configs"]
+      "include": [".github", "zyp-vps", "zyplux", "zyp-vps-configs", "zyp-skills"],
+      "exclude": []
     }
   },
   "rules": [

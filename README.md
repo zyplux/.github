@@ -62,6 +62,6 @@ jobs:
 
 `default-branch-baseline` requires CI, one approving review, code-owner review, resolved review threads, and squash merges for every repository. It also protects the default branch from deletion and force pushes.
 
-`copilot-review` adds automatic Copilot reviews and the required `bot-review-complete` status for every repository except `zyp-vps-configs`.
+`copilot-review` adds automatic Copilot reviews and the required `bot-review-complete` status for `.github`, `zyp-vps`, `zyplux`, `zyp-vps-configs`, and `zyp-skills`.
 
-Merge the shared gate before applying the version-controlled rules with `just apply-org-ruleset`. The required `bot-review-complete` status must be available before the org ruleset requires it.
+Merge the shared gate and workflow callers in every covered repository before applying the version-controlled rules with `just apply-org-ruleset`. The required `bot-review-complete` status must be available before the org ruleset requires it.
