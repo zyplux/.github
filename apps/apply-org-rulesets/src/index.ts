@@ -1,4 +1,5 @@
-import { $, parseJson, readJson, readTrimmed } from '@zyplux/util';
+import { parseJson, readJson } from '@zyplux/util/json';
+import { $, readTrimmed } from '@zyplux/util/shell';
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -23,10 +24,10 @@ export const applyOrgRulesets = async (rulesetsDir: string) => {
     const match = live.find(ruleset => ruleset.name === name);
 
     if (match === undefined) {
-      await $.gh.api(`orgs/${ORG}/rulesets`, { input: filePath, method: 'POST' });
+      await $`gh api --input ${filePath} --method POST ${`orgs/${ORG}/rulesets`}`;
       console.log(`created org ruleset '${name}'`);
     } else {
-      await $.gh.api(`orgs/${ORG}/rulesets/${match.id}`, { input: filePath, method: 'PUT' });
+      await $`gh api --input ${filePath} --method PUT ${`orgs/${ORG}/rulesets/${match.id}`}`;
       console.log(`updated org ruleset '${name}' (#${match.id})`);
     }
   }
