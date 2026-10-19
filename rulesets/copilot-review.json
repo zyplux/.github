@@ -12,7 +12,7 @@
       "exclude": []
     },
     "repository_name": {
-      "include": [".github", "zyp-vps", "zyplux", "zyp-vps-configs", "zyp-skills"],
+      "include": ["~ALL"],
       "exclude": []
     }
   },
