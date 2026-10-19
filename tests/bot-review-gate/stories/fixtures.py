@@ -117,6 +117,7 @@ class FakeConnection:
 
     def request(self, method: str, url: str, body: str | None, headers: dict[str, str]) -> None:
         assert headers["Authorization"] == "Bearer test-token"
+        assert headers.get("User-Agent")
         self.response = self.github.request(method, url, body)
 
     def getresponse(self) -> FakeHttpResponse:

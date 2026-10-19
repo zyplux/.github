@@ -77,6 +77,7 @@ def _request(method: str, path: str, payload: JsonObject | None = None) -> Json:
         "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "zyplux-bot-review-gate",
         "Content-Type": "application/json",
     }
     body = json.dumps(payload) if payload is not None else None
