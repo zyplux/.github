@@ -16,7 +16,7 @@
 | [org_gate_base](.github/workflows/org_gate_base.yml)  | Reusable workflow gating merges on clean reviews from available bots                  |
 | [bot-review-gate](apps/bot-review-gate)       | The app behind org_gate_base — records the review verdict as a commit status   |
 | [apply-org-rulesets](apps/apply-org-rulesets)         | Applies the org rulesets across every repo                                    |
-| [rulesets](rulesets)                                  | Baseline protections and selectively applied Copilot review rules            |
+| [rulesets](rulesets)                                  | Organization-wide branch protections and bot review requirements            |
 
 ## Reusable CI: org_gate_base
 
@@ -62,6 +62,6 @@ jobs:
 
 `default-branch-baseline` requires CI, one approving review, code-owner review, resolved review threads, and squash merges for every repository. It also protects the default branch from deletion and force pushes.
 
-`copilot-review` adds automatic Copilot reviews and the required `bot-review-complete` status for every repository except `zyp-vps-configs`.
+`copilot-review` adds automatic Copilot reviews and the required `bot-review-complete` status for every repository in the organization.
 
-Merge the shared gate before applying the version-controlled rules with `just apply-org-ruleset`. The required `bot-review-complete` status must be available before the org ruleset requires it.
+Merge the shared gate and workflow caller updates before applying the version-controlled rules with `just apply-org-ruleset`. Every repository must publish the required `bot-review-complete` status to satisfy the org ruleset.

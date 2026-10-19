@@ -29,6 +29,6 @@ The caller workflow refreshes the gate on PR, review, and comment activity. GitH
 
 Merge the shared workflow and script before applying the version-controlled org rulesets with `just apply-org-ruleset`. The `copilot-review` ruleset requests automatic Copilot reviews and requires `bot-review-complete`. Its name identifies the automatic review provider; the required status aggregates both bots.
 
-Review automation must read `bot-review-complete` as the aggregate verdict. Requiring Copilot's native check independently prevents quota fallback; update consuming review tools before activating the org ruleset.
+The [resolve-pr-gate skill](https://github.com/zyplux/zyp-skills/tree/main/skills/resolve-pr-gate) reads `ci` and `bot-review-complete`, reports unresolved findings from both bots, and refreshes the verdict after threads are resolved. Install it from `zyplux/zyp-skills` to automate the review loop.
 
 Consuming repositories need Copilot and Codex Code Review enabled and must call the shared workflow. Use the caller in the [root README](../../README.md) to enable review/comment refreshes and manual dispatch. Existing PR-only callers still start the watcher on pushes and ready transitions.
