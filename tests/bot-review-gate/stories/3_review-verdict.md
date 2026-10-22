@@ -20,6 +20,8 @@
 
 ### 3.2.6 quota denial does not erase known codex findings
 
+### 3.2.7 requires a current head review after resolving older findings
+
 ## 3.3 review verdict
 
 ### 3.3.1 codex failures do not count as unavailability

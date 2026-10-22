@@ -14,7 +14,7 @@ from typing import Literal, cast
 
 type Json = dict[str, Json] | list[Json] | str | int | float | bool | None
 type JsonObject = dict[str, Json]
-type ReviewState = Literal["pending", "clean", "unavailable", "findings", "blocked"]
+type ReviewState = Literal["pending", "clean", "unavailable", "blocked"]
 
 STATUS_CONTEXT = "bot-review-complete"
 COPILOT_CHECK_NAME = "copilot-pull-request-reviewer"
@@ -167,13 +167,11 @@ def parse_codex_state(comment: JsonObject, sha: str) -> BotReview:
     if not isinstance(state, dict) or not isinstance(state.get("code_review"), dict):
         return pending
     review = cast("JsonObject", state["code_review"])
-    if review.get("has_unresolved_findings") is True:
-        return BotReview("findings", "Codex has unresolved review findings", url)
     if review.get("commit_sha") != sha:
         return BotReview("pending", "Waiting for Codex review on the current head", url)
     if (
         review.get("status") == "completed"
-        and review.get("has_unresolved_findings") is False
+        and isinstance(review.get("has_unresolved_findings"), bool)
         and isinstance(review.get("has_any_findings"), bool)
     ):
         return BotReview("clean", "Codex review clean", url, sha)
@@ -216,8 +214,6 @@ def find_codex_review(comments: list[JsonObject], reviews: list[JsonObject], sha
         return BotReview("pending", "Waiting for Codex Code Review")
     summaries = [comment for comment in activity if CODEX_STATE_MARKER in cast("str", comment.get("body") or "")]
     summary = parse_codex_state(max(summaries, key=get_activity_time), sha) if summaries else None
-    if summary is not None and summary.state == "findings":
-        return summary
     latest = max(activity, key=get_activity_time)
     body = cast("str", latest.get("body") or "")
     if body.strip().casefold().startswith(CODEX_QUOTA_PREFIX):
@@ -263,7 +259,7 @@ def build_status(copilot: BotReview, codex: BotReview, unresolved: int) -> tuple
     if unresolved:
         return "failure", f"Bot reviews have {unresolved} unresolved threads"
     for review in (copilot, codex):
-        if review.state in {"blocked", "findings"}:
+        if review.state == "blocked":
             return "failure", review.description
     for review in (copilot, codex):
         if review.state == "pending":

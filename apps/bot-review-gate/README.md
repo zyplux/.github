@@ -13,7 +13,7 @@ The reusable [org gate](../../.github/workflows/org_gate_base.yml) publishes the
 | Any | Missing, pending, or stale | Pending |
 | Explicit quota denial | Explicit quota denial | Failure |
 
-Clean reviews must cover the current PR head. Copilot must have a successful check-run and a submitted review; Codex must have a completed `code_review` entry in its bot-authored `codex-review-state:v1` summary with no unresolved findings. Security Review alone does not satisfy Code Review. The gate also checks unresolved threads from both bots, including threads on earlier commits.
+Clean reviews must cover the current PR head. Copilot must have a successful check-run and a submitted review; Codex must have a completed `code_review` entry in its bot-authored `codex-review-state:v1` summary. Live GitHub review threads determine whether findings remain unresolved; summary resolution flags can be stale. Security Review alone does not satisfy Code Review. The gate also checks unresolved threads from both bots, including threads on earlier commits.
 
 Only explicit quota-denial responses from the known bot accounts count as unavailable. API errors, failed checks, cancellations, and timeouts block the gate. Copilot's quota review must cover the current head; a newer check-run invalidates an earlier quota denial. Codex's quota response must have current-head context in its Code Review summary or submitted review. A newer review request or review activity supersedes the response.
 
