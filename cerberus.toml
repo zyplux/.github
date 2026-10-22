@@ -1,11 +1,5 @@
 # Shared exceptions aligned with zyp-vps.
 
-[ci_check_sequence]
-off = true
-
-[workflow_toolchain_only]
-off = true
-
 [fallow]
 off = true
 
