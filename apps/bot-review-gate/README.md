@@ -13,7 +13,7 @@ The reusable [org gate](../../.github/workflows/org_gate_base.yml) publishes the
 | Any | Missing, pending, or stale | Pending |
 | Explicit quota denial | Explicit quota denial | Failure |
 
-Clean reviews must cover the current PR head. Copilot must have a successful check-run and a submitted review; Codex must have a completed `code_review` entry in its bot-authored `codex-review-state:v1` summary with no unresolved findings. Security Review alone does not satisfy Code Review. The gate also checks unresolved threads from both bots, including threads on earlier commits.
+Clean reviews must cover the current PR head. Copilot must have a successful check-run and a submitted review; Codex must have a completed `code_review` entry in its bot-authored `codex-review-state:v1` summary. Live GitHub review threads determine whether findings remain unresolved; summary resolution flags can be stale. Security Review alone does not satisfy Code Review. The gate also checks unresolved threads from both bots, including threads on earlier commits.
 
 Only explicit quota-denial responses from the known bot accounts count as unavailable. API errors, failed checks, cancellations, and timeouts block the gate. Copilot's quota review must cover the current head; a newer check-run invalidates an earlier quota denial. Codex's quota response must have current-head context in its Code Review summary or submitted review. A newer review request or review activity supersedes the response.
 
@@ -23,7 +23,7 @@ Only explicit quota-denial responses from the known bot accounts count as unavai
 
 The gate waits up to 200 seconds for the PR to leave draft, then polls review state every 15 seconds for up to 30 minutes. It publishes verdict changes while waiting, so resolving findings can clear a failing status during that window. Reviews, issue comments, check-runs, and review threads are paginated.
 
-The caller workflow refreshes the gate on PR, review, and comment activity. GitHub Actions has no thread-resolution trigger; resolve threads during an active watch or dispatch `org_gate` with the PR number to refresh it. Exit code zero means the watcher finished; the commit status carries the merge verdict. A pending status remains blocking after the watch window expires. API failures publish `error` and exit with code one.
+The caller workflow refreshes the gate on PR and issue-comment activity. Polling reads reviews without triggering approval-gated workflow runs from Copilot review events. GitHub Actions has no thread-resolution trigger; resolve threads during an active watch or dispatch `org_gate` with the PR number to refresh it. Exit code zero means the watcher finished; the commit status carries the merge verdict. A pending status remains blocking after the watch window expires. API failures publish `error` and exit with code one.
 
 ## Rollout
 
@@ -31,4 +31,4 @@ Merge the shared workflow and script before applying the version-controlled org 
 
 The [resolve-pr-gate skill](https://github.com/zyplux/zyp-skills/tree/main/skills/resolve-pr-gate) reads `ci` and `bot-review-complete`, reports unresolved findings from both bots, and refreshes the verdict after threads are resolved. Install it from `zyplux/zyp-skills` to automate the review loop.
 
-Consuming repositories need Copilot and Codex Code Review enabled and must call the shared workflow. Use the caller in the [root README](../../README.md) to enable review/comment refreshes and manual dispatch. Existing PR-only callers still start the watcher on pushes and ready transitions.
+Consuming repositories need Copilot and Codex Code Review enabled and must call the shared workflow. Use the caller in the [root README](../../README.md) to enable PR/issue-comment refreshes and manual dispatch. Existing PR-only callers still start the watcher on pushes and ready transitions.
