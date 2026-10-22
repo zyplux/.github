@@ -94,7 +94,7 @@ def test_3_2_2_counts_only_unresolved_bot_threads(bot_gate: GateHarness) -> None
 def test_3_2_3_observes_thread_resolution_while_watching(bot_gate: GateHarness, *, stale_summary: bool) -> None:
     bot_gate.arrange_clean_pass()
     bot_gate.set_comments([codex_comment(has_findings=stale_summary, unresolved=stale_summary)])
-    bot_gate.github.on("POST", "graphql", thread_page(review_thread()), thread_page())
+    bot_gate.github.on("POST", "graphql", thread_page(review_thread("chatgpt-codex-connector")), thread_page())
 
     assert bot_gate.run() == 0
     assert [status.state for status in bot_gate.statuses] == ["pending", "failure", "success"]
