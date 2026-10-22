@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: zyplux/zyplux/setup-pm@b8e4d8d6ef9e8125164a2b1d75095390759aab8c
+      - uses: zyplux/zyplux/setup-pm@729370ddaf302fa21fc276f4e0ce6b32b04fdad4
       - run: pnpm run knip
       - run: pnpm run knip --config knip.prod.json
       - run: uv run --no-sync vulture
