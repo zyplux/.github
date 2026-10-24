@@ -33,3 +33,5 @@
 ### 2.2.10 rejects a dismissed quota response
 
 ### 2.2.11 requires current head context for codex quota denial
+
+### 2.2.12 recognizes insufficient remaining copilot quota
