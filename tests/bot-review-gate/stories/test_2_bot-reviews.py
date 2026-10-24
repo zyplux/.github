@@ -163,3 +163,20 @@ def test_2_2_11_requires_current_head_context_for_codex_quota_denial(
 
     assert bot_gate.run() == 0
     assert bot_gate.statuses[-1].state == "pending"
+
+
+def test_2_2_12_recognizes_insufficient_remaining_copilot_quota(bot_gate: GateHarness) -> None:
+    bot_gate.arrange_clean_pass()
+    bot_gate.set_check_run_reads([])
+    bot_gate.set_reviews([
+        copilot_review(
+            body=(
+                "Copilot was unable to review this pull request because the user who requested the review "
+                "has insufficient remaining quota."
+            )
+        )
+    ])
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "success"
+    assert bot_gate.statuses[-1].description == "Copilot quota exhausted; Codex review clean"

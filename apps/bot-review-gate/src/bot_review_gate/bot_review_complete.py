@@ -21,10 +21,10 @@ COPILOT_CHECK_NAME = "copilot-pull-request-reviewer"
 COPILOT_LOGINS = {"copilot", "copilot-pull-request-reviewer"}
 CODEX_LOGIN = "chatgpt-codex-connector"
 CODEX_STATE_MARKER = "<!-- codex-review-state:v1 "
-COPILOT_QUOTA_MESSAGE = (
-    "copilot was unable to review this pull request because the user who requested the review "
-    "has reached their quota limit."
-)
+COPILOT_QUOTA_MESSAGES = {
+    "copilot was unable to review this pull request because the user who requested the review " + reason
+    for reason in ("has reached their quota limit.", "has insufficient remaining quota.")
+}
 CODEX_QUOTA_PREFIX = "you have reached your codex usage limits for code reviews"
 PAGE_SIZE = 100
 HTTP_TIMEOUT_SECONDS = 30
@@ -137,7 +137,7 @@ def find_copilot_review(reviews: list[JsonObject], runs: list[JsonObject], sha: 
         body = cast("str", review.get("body") or "").strip().casefold()
         started_at = cast("str", (run or {}).get("started_at") or "")
         if (
-            body == COPILOT_QUOTA_MESSAGE
+            body in COPILOT_QUOTA_MESSAGES
             and review.get("state") == "COMMENTED"
             and started_at <= get_activity_time(review)
         ):
