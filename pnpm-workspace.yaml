@@ -6,7 +6,7 @@ catalog:
   '@types/node': ^26.6.5
   '@vitest/coverage-istanbul': ^5.0.5
   '@zyplux/cz': ^0.15.0
-  '@zyplux/eslint-config': ^0.12.1
+  '@zyplux/eslint-config': ^0.12.2
   '@zyplux/tsconfig': ^0.3.3
   '@zyplux/util': ^0.9.3
   eslint: ^10.13.0
