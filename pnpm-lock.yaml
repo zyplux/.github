@@ -300,6 +300,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20261030.1
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.5
       '@zyplux/tsconfig':
         specifier: 'catalog:'
         version: 0.3.3

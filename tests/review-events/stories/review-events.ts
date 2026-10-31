@@ -6,7 +6,7 @@ export const HEAD_SHA = '47a365c546edc2a661d47fbf5162b37f8a75ecd3';
 
 const { privateKey } = generateKeyPairSync('rsa', {
   modulusLength: 2048,
-  privateKeyEncoding: { format: 'pem', type: 'pkcs8' },
+  privateKeyEncoding: { format: 'pem', type: 'pkcs1' },
   publicKeyEncoding: { format: 'pem', type: 'spki' },
 });
 

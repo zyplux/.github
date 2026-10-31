@@ -2,6 +2,7 @@ import { createAppAuth } from '@octokit/auth-app';
 import { Octokit } from '@octokit/core';
 import { verify } from '@octokit/webhooks-methods';
 import ruleset from '@rulesets/copilot-review.json' with { type: 'json' };
+import { createPrivateKey } from 'node:crypto';
 import * as z from 'zod';
 
 import { CommitPullsSchema, JsonObjectSchema, ReviewEventSchema } from './contracts.ts';
@@ -58,7 +59,11 @@ const forwardReview = async (
     return new Response(undefined, { status: 204 });
   }
   const github = new Octokit({
-    auth: { appId, installationId: installation.id, privateKey },
+    auth: {
+      appId,
+      installationId: installation.id,
+      privateKey: createPrivateKey(privateKey).export({ format: 'pem', type: 'pkcs8' }),
+    },
     authStrategy: createAppAuth,
     request: { signal: AbortSignal.timeout(GITHUB_TIMEOUT_MS) },
   });

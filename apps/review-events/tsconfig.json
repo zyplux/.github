@@ -2,7 +2,7 @@
   "extends": "@zyplux/tsconfig/cfworker.json",
   "compilerOptions": {
     "paths": { "@rulesets/*": ["../../rulesets/*"] },
-    "types": ["@cloudflare/workers-types"]
+    "types": ["@cloudflare/workers-types", "node"]
   },
   "include": ["src", "../../rulesets/copilot-review.json"]
 }
