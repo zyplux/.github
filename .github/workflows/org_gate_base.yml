@@ -25,19 +25,20 @@ jobs:
   bot_review_check:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    container: ghcr.io/zyplux/ci:0.1.1
     steps:
       - name: Check out gate script
         uses: actions/checkout@v6
         with:
           repository: zyplux/.github
           ref: main
-          path: gate
           sparse-checkout: apps/bot-review-gate/src
+      - uses: zyplux/zyplux/apps/action-setup-pm@setup-pm-v1
+        with:
+          install-dependencies: false
       - name: Record aggregate bot review as a commit status
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number || github.event.issue.number || inputs.pr }}
           SHA: ${{ inputs.sha || github.event.pull_request.head.sha }}
-        run: uv run --python 3.14 gate/apps/bot-review-gate/src/bot_review_gate/bot_review_complete.py
+        run: uv run --no-project --python 3.14 apps/bot-review-gate/src/bot_review_gate/bot_review_complete.py
