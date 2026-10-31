@@ -1,4 +1,4 @@
-import { describe, expect, HEAD_SHA, test } from './review-events.ts';
+import { describe, expect, test } from './stories.ts';
 
 describe('1.1 authenticating webhook deliveries', () => {
   test('1.1.1 rejects forged deliveries before contacting GitHub', async ({ github, webhook }) => {
@@ -39,7 +39,7 @@ describe('1.1 authenticating webhook deliveries', () => {
 describe('1.2 refreshing the aggregate review gate', () => {
   test.for(['resolved', 'unresolved'])(
     '1.2.1 refreshes thread resolution and reopening (%s)',
-    async (action, { github, webhook }) => {
+    async (action, { github, headSha, webhook }) => {
       const response = await webhook.send('pull_request_review_thread', { action, pull_request: { number: 62 } });
 
       expect(response).toMatchObject({ status: 204 });
@@ -47,7 +47,7 @@ describe('1.2 refreshing the aggregate review gate', () => {
       expect(dispatch).toEqual([
         'https://api.github.com/repos/zyplux/zyp-vps/actions/workflows/org_gate.yml/dispatches',
         expect.objectContaining({
-          body: JSON.stringify({ inputs: { pr: '62', sha: HEAD_SHA }, ref: 'main' }),
+          body: JSON.stringify({ inputs: { pr: '62', sha: headSha }, ref: 'main' }),
           method: 'POST',
         }),
       ]);
@@ -90,24 +90,24 @@ describe('1.2 refreshing the aggregate review gate', () => {
     );
   });
 
-  test('1.2.5 refreshes Copilot check activity', async ({ github, webhook }) => {
+  test('1.2.5 refreshes Copilot check activity', async ({ github, headSha, webhook }) => {
     await expect(
       webhook.send('check_run', {
-        check_run: { head_sha: HEAD_SHA, name: 'copilot-pull-request-reviewer', pull_requests: [] },
+        check_run: { head_sha: headSha, name: 'copilot-pull-request-reviewer', pull_requests: [] },
       }),
     ).resolves.toMatchObject({ status: 204 });
     const dispatches = github.mock.calls.filter(([url]) => new Request(url).url.endsWith('/dispatches'));
     expect(dispatches).toHaveLength(1);
-    expect(dispatches[0]?.[1]?.body).toBe(JSON.stringify({ inputs: { pr: '62', sha: HEAD_SHA }, ref: 'main' }));
+    expect(dispatches[0]?.[1]?.body).toBe(JSON.stringify({ inputs: { pr: '62', sha: headSha }, ref: 'main' }));
   });
 
-  test('1.2.6 refreshes a later Copilot workflow start', async ({ github, webhook }) => {
+  test('1.2.6 refreshes a later Copilot workflow start', async ({ github, headSha, webhook }) => {
     await expect(
       webhook.send('workflow_run', {
         action: 'in_progress',
         workflow_run: {
           display_title: 'Running Copilot Code Review',
-          head_sha: HEAD_SHA,
+          head_sha: headSha,
           name: 'Copilot',
           pull_requests: [],
         },
@@ -138,16 +138,16 @@ describe('1.2 refreshing the aggregate review gate', () => {
     },
   );
 
-  test('1.2.9 forwards the webhook head without fetching the pull request', async ({ github, webhook }) => {
+  test('1.2.9 forwards the webhook head without fetching the pull request', async ({ github, headSha, webhook }) => {
     await expect(
       webhook.send('pull_request_review_thread', {
         action: 'resolved',
-        pull_request: { head: { sha: HEAD_SHA }, number: 62 },
+        pull_request: { head: { sha: headSha }, number: 62 },
       }),
     ).resolves.toMatchObject({ status: 204 });
     expect(github.mock.calls.some(([url]) => new Request(url).url.endsWith('/pulls/62'))).toBe(false);
     expect(github.mock.calls.find(([url]) => new Request(url).url.endsWith('/dispatches'))?.[1]?.body).toBe(
-      JSON.stringify({ inputs: { pr: '62', sha: HEAD_SHA }, ref: 'main' }),
+      JSON.stringify({ inputs: { pr: '62', sha: headSha }, ref: 'main' }),
     );
   });
 });
@@ -158,8 +158,6 @@ describe('1.3 ignoring unrelated activity', () => {
     ['pull_request', { action: 'labeled', pull_request: { draft: false, number: 62 } }],
     ['issue_comment', { comment: { body: 'hello', user: { type: 'User' } }, issue: { number: 62, pull_request: {} } }],
     ['issue_comment', { comment: { body: '@codex review', user: { type: 'Bot' } }, issue: { number: 62 } }],
-    ['check_run', { check_run: { head_sha: HEAD_SHA, name: 'ci' } }],
-    ['workflow_run', { workflow_run: { head_sha: HEAD_SHA, name: 'org_gate' } }],
     ['ping', {}],
   ] as const)(
     '1.3.1 acknowledges irrelevant events without dispatching (%s)',
@@ -176,4 +174,14 @@ describe('1.3 ignoring unrelated activity', () => {
     await expect(webhook.fetch(new Request('https://review-events.example/'))).resolves.toMatchObject({ status: 404 });
     expect(github).not.toHaveBeenCalled();
   });
+
+  test.for(['check_run', 'workflow_run'])(
+    '1.3.3 ignores unrelated checks and workflows (%s)',
+    async (event, { github, headSha, webhook }) => {
+      await expect(webhook.send(event, { [event]: { head_sha: headSha, name: 'ci' } })).resolves.toMatchObject({
+        status: 204,
+      });
+      expect(github).not.toHaveBeenCalled();
+    },
+  );
 });

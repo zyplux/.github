@@ -2,7 +2,7 @@ import worker from '@zyplux/review-events';
 import { createHmac, generateKeyPairSync } from 'node:crypto';
 import { test as base, vi } from 'vitest';
 
-export const HEAD_SHA = '47a365c546edc2a661d47fbf5162b37f8a75ecd3';
+const HEAD_SHA = '47a365c546edc2a661d47fbf5162b37f8a75ecd3';
 
 const { privateKey } = generateKeyPairSync('rsa', {
   modulusLength: 2048,
@@ -18,6 +18,7 @@ const envelope = {
 };
 
 export const test = base
+  .extend('headSha', () => HEAD_SHA)
   .extend('github', () =>
     vi.spyOn(globalThis, 'fetch').mockImplementation(url => {
       const endpoint = new Request(url).url;
