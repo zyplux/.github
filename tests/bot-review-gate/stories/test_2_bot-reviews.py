@@ -18,12 +18,15 @@ if TYPE_CHECKING:
     from fixtures import GateHarness
 
 
-def test_2_1_1_waits_when_copilot_was_not_requested(bot_gate: GateHarness) -> None:
+@pytest.mark.parametrize("check_status", [None, "queued"])
+def test_2_1_1_accepts_codex_when_copilot_has_not_started(bot_gate: GateHarness, check_status: str | None) -> None:
     bot_gate.arrange_clean_pass()
-    bot_gate.set_check_run_reads([])
+    bot_gate.set_check_run_reads([] if check_status is None else [copilot_run(check_status)])
+    bot_gate.set_reviews([])
 
     assert bot_gate.run() == 0
-    assert bot_gate.statuses[-1].state == "pending"
+    assert bot_gate.statuses[-1].state == "success"
+    assert bot_gate.statuses[-1].description == "Codex review clean"
 
 
 def test_2_1_2_waits_for_both_current_head_reviews(bot_gate: GateHarness) -> None:
@@ -66,6 +69,8 @@ def test_2_1_4_keeps_timed_out_reviews_pending(bot_gate: GateHarness) -> None:
 )
 def test_2_2_1_rejects_missing_or_malformed_codex_evidence(bot_gate: GateHarness, body: str) -> None:
     bot_gate.arrange_clean_pass()
+    bot_gate.set_check_run_reads([])
+    bot_gate.set_reviews([])
     bot_gate.set_comments([{**codex_comment(), "body": body}])
 
     assert bot_gate.run() == 0
@@ -74,6 +79,8 @@ def test_2_2_1_rejects_missing_or_malformed_codex_evidence(bot_gate: GateHarness
 
 def test_2_2_2_rejects_a_spoofed_bot_summary(bot_gate: GateHarness) -> None:
     bot_gate.arrange_clean_pass()
+    bot_gate.set_check_run_reads([])
+    bot_gate.set_reviews([])
     bot_gate.set_comments([{**codex_comment(), "user": {"login": "codex-helper"}}])
 
     assert bot_gate.run() == 0
@@ -106,13 +113,14 @@ def test_2_2_5_uses_newer_review_state_after_a_codex_quota_denial(bot_gate: Gate
     assert bot_gate.statuses[-1].state == "pending"
 
 
-def test_2_2_6_rejects_a_copilot_quota_denial_for_an_older_head(bot_gate: GateHarness) -> None:
+def test_2_2_6_ignores_a_copilot_quota_denial_for_an_older_head(bot_gate: GateHarness) -> None:
     bot_gate.arrange_clean_pass()
     bot_gate.set_check_run_reads([])
     bot_gate.set_reviews([copilot_review("old-sha", COPILOT_QUOTA_MESSAGE)])
 
     assert bot_gate.run() == 0
-    assert bot_gate.statuses[-1].state == "pending"
+    assert bot_gate.statuses[-1].state == "success"
+    assert bot_gate.statuses[-1].description == "Codex review clean"
 
 
 def test_2_2_7_waits_for_a_copilot_retry_after_quota_denial(bot_gate: GateHarness) -> None:
@@ -152,7 +160,7 @@ def test_2_2_10_rejects_a_dismissed_quota_response(bot_gate: GateHarness) -> Non
 
 
 @pytest.mark.parametrize("has_summary", [False, True])
-def test_2_2_11_requires_current_head_context_for_codex_quota_denial(
+def test_2_2_11_ignores_codex_quota_denial_without_current_head_context(
     bot_gate: GateHarness, *, has_summary: bool
 ) -> None:
     bot_gate.arrange_clean_pass()
@@ -162,7 +170,8 @@ def test_2_2_11_requires_current_head_context_for_codex_quota_denial(
     bot_gate.set_comments(comments)
 
     assert bot_gate.run() == 0
-    assert bot_gate.statuses[-1].state == "pending"
+    assert bot_gate.statuses[-1].state == "success"
+    assert bot_gate.statuses[-1].description == "Copilot review clean"
 
 
 def test_2_2_12_recognizes_insufficient_remaining_copilot_quota(bot_gate: GateHarness) -> None:
@@ -179,4 +188,4 @@ def test_2_2_12_recognizes_insufficient_remaining_copilot_quota(bot_gate: GateHa
 
     assert bot_gate.run() == 0
     assert bot_gate.statuses[-1].state == "success"
-    assert bot_gate.statuses[-1].description == "Copilot quota exhausted; Codex review clean"
+    assert bot_gate.statuses[-1].description == "Codex review clean"

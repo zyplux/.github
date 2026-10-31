@@ -1,7 +1,7 @@
 [project]
 name = "bot-review-gate"
 version = "0"
-description = "Gates pull requests on clean reviews from available Copilot and Codex bots"
+description = "Gates pull requests on clean reviews from participating Copilot and Codex bots"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = []
