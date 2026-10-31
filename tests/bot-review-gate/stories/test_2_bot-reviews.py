@@ -142,7 +142,7 @@ def test_2_2_8_observes_newer_codex_summary_edits(bot_gate: GateHarness) -> None
     assert bot_gate.statuses[-1].state == "success"
 
 
-def test_2_2_8_accepts_completed_codex_summary_without_unresolved_finding_flag(
+def test_2_2_13_accepts_completed_codex_summary_without_unresolved_finding_flag(
     bot_gate: GateHarness,
 ) -> None:
     bot_gate.arrange_clean_pass()
