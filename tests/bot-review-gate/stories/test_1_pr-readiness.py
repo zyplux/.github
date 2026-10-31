@@ -48,3 +48,14 @@ def test_1_1_5_loads_the_current_head_for_manual_refresh(
 
     assert bot_gate.run() == 0
     assert bot_gate.statuses[-1].state == "success"
+
+
+def test_1_1_6_stops_watching_when_the_pr_closes(bot_gate: GateHarness, poll_sleeps: list[float]) -> None:
+    bot_gate.arrange_clean_pass()
+    bot_gate.set_check_run_reads([])
+    bot_gate.set_reviews([])
+    bot_gate.set_draft_reads(PR_READY, PR_READY, {**PR_READY, "state": "closed"})
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "success"
+    assert len(poll_sleeps) == 1

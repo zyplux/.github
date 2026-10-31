@@ -304,8 +304,8 @@ def watch_reviews(repo: str, pr: str, sha: str) -> int:
     previous: tuple[str, str] | None = None
     for attempt in range(REVIEW_POLL_ATTEMPTS + 1):
         pull = fetch_pull(repo, pr)
-        if get_head_sha(pull) != sha or pull["draft"]:
-            logger.info("PR head or readiness changed; stopping this watcher")
+        if get_head_sha(pull) != sha or pull["draft"] or pull.get("state") == "closed":
+            logger.info("PR head, readiness or open state changed; stopping this watcher")
             return 0
         reviews = fetch_pages(f"repos/{repo}/pulls/{pr}/reviews")
         comments = fetch_pages(f"repos/{repo}/issues/{pr}/comments")
@@ -318,7 +318,8 @@ def watch_reviews(repo: str, pr: str, sha: str) -> int:
         if verdict != previous:
             post_status(repo, sha, *verdict, codex.url or copilot.url)
             previous = verdict
-        if verdict[0] == "success" or copilot.state == codex.state == "unavailable":
+        has_missing_review = "missing" in {copilot.state, codex.state}
+        if (verdict[0] == "success" and not has_missing_review) or copilot.state == codex.state == "unavailable":
             return 0
         if attempt < REVIEW_POLL_ATTEMPTS:
             time.sleep(REVIEW_POLL_SECONDS)

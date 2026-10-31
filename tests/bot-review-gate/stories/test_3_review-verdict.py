@@ -90,6 +90,19 @@ def test_3_1_3_ignores_earlier_reviews_when_the_other_bot_passes(bot_gate: GateH
     assert bot_gate.statuses[-1].state == "success"
 
 
+@pytest.mark.parametrize("bot", ["copilot", "codex"])
+def test_3_1_4_invalidates_success_when_a_second_review_starts(bot_gate: GateHarness, bot: str) -> None:
+    bot_gate.arrange_clean_pass()
+    if bot == "copilot":
+        bot_gate.set_reviews([], [], [copilot_review()])
+        bot_gate.set_check_run_reads([], [copilot_run("in_progress")], [copilot_run()])
+    else:
+        bot_gate.set_comments([], [codex_comment(status="running")], [codex_comment()])
+
+    assert bot_gate.run() == 0
+    assert [status.state for status in bot_gate.statuses] == ["pending", "success", "pending", "success"]
+
+
 @pytest.mark.parametrize(
     "author",
     ["Copilot", "copilot-pull-request-reviewer[bot]", "chatgpt-codex-connector", "chatgpt-codex-connector[bot]"],
@@ -164,6 +177,16 @@ def test_3_2_7_accepts_a_clean_current_head_review_after_resolving_older_finding
 
     assert bot_gate.run() == 0
     assert bot_gate.statuses[-1].state == "success"
+
+
+def test_3_2_8_invalidates_success_when_a_second_review_finds_issues(bot_gate: GateHarness) -> None:
+    bot_gate.arrange_clean_pass()
+    bot_gate.set_reviews([], [copilot_review()])
+    bot_gate.set_check_run_reads([], [copilot_run()])
+    bot_gate.github.on("POST", "graphql", thread_page(), thread_page(review_thread()))
+
+    assert bot_gate.run() == 0
+    assert [status.state for status in bot_gate.statuses] == ["pending", "success", "failure"]
 
 
 @pytest.mark.parametrize("state", ["failed", "cancelled", "error"])

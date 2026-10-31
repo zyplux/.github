@@ -11,3 +11,5 @@
 ### 1.1.4 stops when the head changes
 
 ### 1.1.5 loads the current head for manual refresh
+
+### 1.1.6 stops watching when the pr closes

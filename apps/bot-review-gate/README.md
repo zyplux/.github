@@ -24,7 +24,7 @@ Only explicit quota-denial responses from the known bot accounts count as unavai
 
 [bot_review_complete.py](src/bot_review_gate/bot_review_complete.py) reads `REPO`, `PR`, `GH_TOKEN`, and optional `SHA`. The workflow token needs `checks: read`, `pull-requests: read`, and `statuses: write`. When `SHA` is omitted, a manual refresh evaluates the live head. A watcher stops when the PR becomes draft or its head changes.
 
-The gate waits up to 200 seconds for the PR to leave draft, then polls review state every 15 seconds for up to 30 minutes. It publishes verdict changes while waiting, so resolving findings can clear a failing status during that window. Reviews, issue comments, check-runs, and review threads are paginated.
+The gate waits up to 200 seconds for the PR to leave draft, then polls review state every 15 seconds for up to 30 minutes. After a one-bot success, polling continues so a second bot's activity can invalidate the verdict; closing the PR stops the watcher. It publishes verdict changes while waiting, so resolving findings can clear a failing status during that window. Reviews, issue comments, check-runs, and review threads are paginated.
 
 The caller workflow refreshes the gate on PR and issue-comment activity. Polling reads reviews without triggering approval-gated workflow runs from Copilot review events. GitHub Actions has no thread-resolution trigger; resolve threads during an active watch or dispatch `org_gate` with the PR number to refresh it. Exit code zero means the watcher finished; the commit status carries the merge verdict. A pending status remains blocking after the watch window expires. API failures publish `error` and exit with code one.
 

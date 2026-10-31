@@ -8,6 +8,8 @@
 
 ### 3.1.3 ignores earlier reviews when the other bot passes
 
+### 3.1.4 invalidates success when a second review starts
+
 ## 3.2 review verdict
 
 ### 3.2.1 blocks unresolved findings from either bot
@@ -23,6 +25,8 @@
 ### 3.2.6 quota denial does not erase known codex findings
 
 ### 3.2.7 accepts a clean current head review after resolving older findings
+
+### 3.2.8 invalidates success when a second review finds issues
 
 ## 3.3 review verdict
 
