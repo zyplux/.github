@@ -22,13 +22,13 @@ paths = ["apps/bot-review-gate/src", "tests/bot-review-gate"]
 
 [dependency-groups]
 lint = [
-    "ruff>=0.17.1",
-    "rumdl>=0.3.0",
+    "ruff>=0.17.3",
+    "rumdl>=0.3.2",
     "vulture>=2.16",
     "zyplux-cerberus>=0.27.0",
 ]
 test = [
-    "pytest>=9.1.1",
+    "pytest>=9.2.0",
     "pytest-cov>=7.1.0",
 ]
 type = ["pyrefly>=1.4.0"]
