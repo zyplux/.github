@@ -22,7 +22,7 @@
     "lint": "eslint . --cache",
     "lint:fix": "pnpm run lint --fix",
     "test": "vitest run --passWithNoTests",
-    "cz": "cz"
+    "cz": "node scripts/run-cz.ts"
   },
   "devDependencies": {
     "@types/node": "catalog:",
