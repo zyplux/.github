@@ -14,7 +14,7 @@ from typing import Literal, cast
 
 type Json = dict[str, Json] | list[Json] | str | int | float | bool | None
 type JsonObject = dict[str, Json]
-type ReviewState = Literal["pending", "clean", "unavailable", "blocked"]
+type ReviewState = Literal["missing", "pending", "clean", "unavailable", "blocked"]
 
 STATUS_CONTEXT = "bot-review-complete"
 COPILOT_CHECK_NAME = "copilot-pull-request-reviewer"
@@ -143,7 +143,11 @@ def find_copilot_review(reviews: list[JsonObject], runs: list[JsonObject], sha: 
         ):
             return BotReview("unavailable", "Copilot quota exhausted", cast("str", review.get("html_url") or ""))
     if run is None or run.get("status") != "completed":
-        return BotReview("pending", "Waiting for Copilot review")
+        is_missing = review is None and (run is None or run.get("status") == "queued")
+        return BotReview(
+            "missing" if is_missing else "pending",
+            "Copilot review not started" if is_missing else "Waiting for Copilot review",
+        )
     url = cast("str", run.get("details_url") or "")
     conclusion = run.get("conclusion")
     if conclusion != "success":
@@ -168,7 +172,7 @@ def parse_codex_state(comment: JsonObject, sha: str) -> BotReview:
         return pending
     review = cast("JsonObject", state["code_review"])
     if review.get("commit_sha") != sha:
-        return BotReview("pending", "Waiting for Codex review on the current head", url)
+        return BotReview("missing", "Codex review not started on the current head")
     if (
         review.get("status") == "completed"
         and isinstance(review.get("has_unresolved_findings"), bool)
@@ -185,7 +189,7 @@ def assess_codex_quota(
     comment: JsonObject, summary: BotReview | None, comments: list[JsonObject], sha: str
 ) -> BotReview:
     if comment.get("commit_id") != sha and (summary is None or summary.commit_sha != sha):
-        return BotReview("pending", "Waiting for Codex availability on the current head")
+        return BotReview("missing", "Codex review not started on the current head")
     request_times = [
         get_activity_time(comment)
         for comment in comments
@@ -211,7 +215,7 @@ def find_codex_review(comments: list[JsonObject], reviews: list[JsonObject], sha
         review for review in reviews if get_author(review) == CODEX_LOGIN and review.get("commit_id") == sha
     )
     if not activity:
-        return BotReview("pending", "Waiting for Codex Code Review")
+        return BotReview("missing", "Codex Code Review not detected")
     summaries = [comment for comment in activity if CODEX_STATE_MARKER in cast("str", comment.get("body") or "")]
     summary = parse_codex_state(max(summaries, key=get_activity_time), sha) if summaries else None
     latest = max(activity, key=get_activity_time)
@@ -266,9 +270,10 @@ def build_status(copilot: BotReview, codex: BotReview, unresolved: int) -> tuple
             return "pending", review.description
     if copilot.state == codex.state == "unavailable":
         return "failure", "Both review bots are unavailable; a clean review is required"
-    if copilot.state == codex.state == "clean":
-        return "success", "Copilot and Codex reviews are clean"
-    return "success", f"{copilot.description}; {codex.description}"
+    clean = [review.description for review in (copilot, codex) if review.state == "clean"]
+    if clean:
+        return "success", "; ".join(clean)
+    return "pending", "Waiting for a clean Copilot or Codex review"
 
 
 def post_status(repo: str, sha: str, state: str, description: str, target_url: str = "") -> None:

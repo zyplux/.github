@@ -2,7 +2,7 @@
 
 ## 2.1 bot reviews
 
-### 2.1.1 waits when copilot was not requested
+### 2.1.1 accepts codex when copilot has not started
 
 ### 2.1.2 waits for both current head reviews
 
@@ -22,7 +22,7 @@
 
 ### 2.2.5 uses newer review state after a codex quota denial
 
-### 2.2.6 rejects a copilot quota denial for an older head
+### 2.2.6 ignores a copilot quota denial for an older head
 
 ### 2.2.7 waits for a copilot retry after quota denial
 
@@ -32,6 +32,6 @@
 
 ### 2.2.10 rejects a dismissed quota response
 
-### 2.2.11 requires current head context for codex quota denial
+### 2.2.11 ignores codex quota denial without current head context
 
 ### 2.2.12 recognizes insufficient remaining copilot quota

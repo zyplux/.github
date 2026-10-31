@@ -9,11 +9,14 @@ The reusable [org gate](../../.github/workflows/org_gate_base.yml) publishes the
 | Clean | Explicit quota denial | Success |
 | Unresolved findings | Any | Failure |
 | Any | Unresolved findings | Failure |
-| Missing, pending, or stale | Any | Pending |
-| Any | Missing, pending, or stale | Pending |
+| No review detected | Clean | Success |
+| Clean | No review detected | Success |
+| No review detected | No review detected | Pending |
+| Review in progress | Clean or no review detected | Pending |
+| Clean or no review detected | Review in progress | Pending |
 | Explicit quota denial | Explicit quota denial | Failure |
 
-Clean reviews must cover the current PR head. Copilot must have a successful check-run and a submitted review; Codex must have a completed `code_review` entry in its bot-authored `codex-review-state:v1` summary. Live GitHub review threads determine whether findings remain unresolved; summary resolution flags can be stale. Security Review alone does not satisfy Code Review. The gate also checks unresolved threads from both bots, including threads on earlier commits.
+At least one bot must complete a clean review of the current PR head. Only bots that have started reviewing that commit participate; queued requests alone do not block. Copilot must have a successful check-run and a submitted review; Codex must have a completed `code_review` entry in its bot-authored `codex-review-state:v1` summary. Live GitHub review threads determine whether findings remain unresolved; summary resolution flags can be stale. Security Review alone does not satisfy Code Review. The gate also checks unresolved threads from both bots, including threads on earlier commits.
 
 Only explicit quota-denial responses from the known bot accounts count as unavailable. API errors, failed checks, cancellations, and timeouts block the gate. Copilot's quota review must cover the current head; a newer check-run invalidates an earlier quota denial. Codex's quota response must have current-head context in its Code Review summary or submitted review. A newer review request or review activity supersedes the response.
 
@@ -31,4 +34,4 @@ Merge the shared workflow and script before applying the version-controlled org 
 
 The [resolve-pr-gate skill](https://github.com/zyplux/zyp-skills/tree/main/skills/resolve-pr-gate) reads `ci` and `bot-review-complete`, reports unresolved findings from both bots, and refreshes the verdict after threads are resolved. Install it from `zyplux/zyp-skills` to automate the review loop.
 
-Consuming repositories need Copilot and Codex Code Review enabled and must call the shared workflow. Use the caller in the [root README](../../README.md) to enable PR/issue-comment refreshes and manual dispatch. Existing PR-only callers still start the watcher on pushes and ready transitions.
+Consuming repositories need at least one of Copilot or Codex Code Review enabled and must call the shared workflow. Use the caller in the [root README](../../README.md) to enable PR/issue-comment refreshes and manual dispatch. Existing PR-only callers still start the watcher on pushes and ready transitions.

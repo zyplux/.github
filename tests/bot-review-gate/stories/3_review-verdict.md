@@ -2,9 +2,11 @@
 
 ## 3.1 review verdict
 
-### 3.1.1 requires clean reviews from every available bot
+### 3.1.1 requires clean reviews from every participating bot
 
 ### 3.1.2 links success to the review evidence
+
+### 3.1.3 ignores earlier reviews when the other bot passes
 
 ## 3.2 review verdict
 
@@ -20,7 +22,7 @@
 
 ### 3.2.6 quota denial does not erase known codex findings
 
-### 3.2.7 requires a current head review after resolving older findings
+### 3.2.7 accepts a clean current head review after resolving older findings
 
 ## 3.3 review verdict
 

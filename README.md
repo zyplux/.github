@@ -13,16 +13,16 @@
 | Piece                                                 | What it is                                                                    |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------ |
 | [profile/README.md](profile/README.md)                | Public org profile rendered at [github.com/zyplux](https://github.com/zyplux) |
-| [org_gate_base](.github/workflows/org_gate_base.yml)  | Reusable workflow gating merges on clean reviews from available bots                  |
+| [org_gate_base](.github/workflows/org_gate_base.yml)  | Reusable workflow gating merges on clean reviews from participating bots                  |
 | [bot-review-gate](apps/bot-review-gate)       | The app behind org_gate_base — records the review verdict as a commit status   |
 | [apply-org-rulesets](apps/apply-org-rulesets)         | Applies the org rulesets across every repo                                    |
 | [rulesets](rulesets)                                  | Organization-wide branch protections and bot review requirements            |
 
 ## Reusable CI: org_gate_base
 
-The shared [bot review gate](apps/bot-review-gate/README.md) requires clean Copilot and Codex Code Reviews for the current PR head. An explicit quota denial from one bot is accepted when the other completes a clean review. Unresolved findings from either bot always block merging. Missing, pending, stale, or unreadable review evidence keeps the gate blocking.
+The shared [bot review gate](apps/bot-review-gate/README.md) requires at least one clean Copilot or Codex Code Review for the current PR head. When both bots participate, both must pass. An explicit quota denial from one bot is accepted when the other completes a clean review. Unresolved findings, unfinished participating reviews, and unreadable evidence keep the gate blocking.
 
-Every repository covered by the `copilot-review` ruleset must call the workflow and enable both reviewers. The ruleset requests Copilot automatically; configure Codex automatic reviews in its GitHub integration.
+Every repository covered by the `copilot-review` ruleset must call the workflow and enable at least one reviewer. The ruleset requests Copilot automatically; configure Codex automatic reviews in its GitHub integration.
 
 Add `.github/workflows/org_gate.yml` to the consuming repo:
 
