@@ -48,4 +48,8 @@ jobs:
       - name: Verify Worker health
         env:
           WORKER_URL: https://github-hooks.zyplux.ai
-        run: curl --fail --show-error --silent "$WORKER_URL/health"
+        run: >-
+          curl --fail --show-error --silent
+          --retry 12 --retry-all-errors --retry-delay 5 --retry-max-time 120
+          --connect-timeout 5 --max-time 10
+          "$WORKER_URL/health"
