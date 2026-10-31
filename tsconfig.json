@@ -3,6 +3,8 @@
   "references": [
     { "path": "./tsconfig.tooling.json" },
     { "path": "./apps/apply-org-rulesets" },
-    { "path": "./tests/apply-org-rulesets" }
+    { "path": "./apps/review-events" },
+    { "path": "./tests/apply-org-rulesets" },
+    { "path": "./tests/review-events" }
   ]
 }

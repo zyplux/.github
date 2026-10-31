@@ -100,7 +100,9 @@ def test_3_1_4_invalidates_success_when_a_second_review_starts(bot_gate: GateHar
         bot_gate.set_comments([], [codex_comment(status="running")], [codex_comment()])
 
     assert bot_gate.run() == 0
-    assert [status.state for status in bot_gate.statuses] == ["pending", "success", "pending", "success"]
+    assert bot_gate.run() == 0
+    assert bot_gate.run() == 0
+    assert [status.state for status in bot_gate.statuses] == ["success", "pending", "success"]
 
 
 @pytest.mark.parametrize(
@@ -127,13 +129,14 @@ def test_3_2_2_counts_only_unresolved_bot_threads(bot_gate: GateHarness) -> None
 
 
 @pytest.mark.parametrize("stale_summary", [False, True])
-def test_3_2_3_observes_thread_resolution_while_watching(bot_gate: GateHarness, *, stale_summary: bool) -> None:
+def test_3_2_3_observes_thread_resolution_on_the_next_event(bot_gate: GateHarness, *, stale_summary: bool) -> None:
     bot_gate.arrange_clean_pass()
     bot_gate.set_comments([codex_comment(has_findings=stale_summary, unresolved=stale_summary)])
     bot_gate.github.on("POST", "graphql", thread_page(review_thread("chatgpt-codex-connector")), thread_page())
 
     assert bot_gate.run() == 0
-    assert [status.state for status in bot_gate.statuses] == ["pending", "failure", "success"]
+    assert bot_gate.run() == 0
+    assert [status.state for status in bot_gate.statuses] == ["failure", "success"]
 
 
 def test_3_2_4_paginates_review_threads_before_passing(bot_gate: GateHarness) -> None:
@@ -186,7 +189,8 @@ def test_3_2_8_invalidates_success_when_a_second_review_finds_issues(bot_gate: G
     bot_gate.github.on("POST", "graphql", thread_page(), thread_page(review_thread()))
 
     assert bot_gate.run() == 0
-    assert [status.state for status in bot_gate.statuses] == ["pending", "success", "failure"]
+    assert bot_gate.run() == 0
+    assert [status.state for status in bot_gate.statuses] == ["success", "failure"]
 
 
 @pytest.mark.parametrize("state", ["failed", "cancelled", "error"])

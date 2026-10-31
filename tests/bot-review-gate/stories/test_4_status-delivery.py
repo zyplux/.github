@@ -9,12 +9,12 @@ if TYPE_CHECKING:
     from fixtures import GateHarness
 
 
-def test_4_1_1_continues_when_the_pending_status_post_fails(bot_gate: GateHarness) -> None:
+def test_4_1_1_reports_status_delivery_failures(bot_gate: GateHarness) -> None:
     bot_gate.arrange_clean_pass()
     bot_gate.github.status_post_failures.append(OSError("network down"))
 
-    assert bot_gate.run() == 0
-    assert [status.state for status in bot_gate.statuses] == ["success"]
+    assert bot_gate.run() == 1
+    assert [status.state for status in bot_gate.statuses] == ["error"]
 
 
 @pytest.mark.parametrize("endpoint", ["reviews", "comments", "check-runs", "threads"])

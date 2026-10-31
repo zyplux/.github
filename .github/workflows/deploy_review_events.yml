@@ -1,0 +1,51 @@
+name: deploy_review_events
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy_review_events.yml'
+      - 'apps/review-events/**'
+      - 'rulesets/copilot-review.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: review-events-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.deployment-url }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: zyplux/zyplux/apps/action-setup-pm@setup-pm-v1
+      - name: Deploy review event receiver
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/review-events
+          secrets: |
+            REVIEW_APP_ID
+            REVIEW_APP_PRIVATE_KEY
+            REVIEW_WEBHOOK_SECRET
+        env:
+          REVIEW_APP_ID: ${{ vars.REVIEW_APP_ID }}
+          REVIEW_APP_PRIVATE_KEY: ${{ secrets.REVIEW_APP_PRIVATE_KEY }}
+          REVIEW_WEBHOOK_SECRET: ${{ secrets.REVIEW_WEBHOOK_SECRET }}
+      - name: Verify Worker health
+        env:
+          WORKER_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: curl --fail --show-error --silent "$WORKER_URL/health"

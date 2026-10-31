@@ -6,9 +6,9 @@
 
 ### 2.1.2 waits for both current head reviews
 
-### 2.1.3 accepts reviews within thirty minutes
+### 2.1.3 checks pending reviews once
 
-### 2.1.4 keeps timed out reviews pending
+### 2.1.4 accepts completion on a later event
 
 ## 2.2 bot reviews
 

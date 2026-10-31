@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "zyplux-review-events",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-31",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "routes": [{ "pattern": "github-hooks.zyplux.ai", "custom_domain": true }],
+  "preview_urls": false,
+  "secrets": {
+    "required": ["REVIEW_APP_ID", "REVIEW_APP_PRIVATE_KEY", "REVIEW_WEBHOOK_SECRET"],
+  },
+  "observability": {
+    "enabled": true,
+    "traces": { "enabled": true },
+  },
+}

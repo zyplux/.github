@@ -6,7 +6,7 @@ const buildConfig = () =>
       coverage: {
         enabled: true,
         exclude: ['apps/apply-org-rulesets/src/cli.ts'],
-        include: ['apps/apply-org-rulesets/src/**'],
+        include: ['apps/*/src/**/*.ts'],
         provider: 'istanbul',
         thresholds: {
           branches: 90,
@@ -15,7 +15,7 @@ const buildConfig = () =>
           statements: 90,
         },
       },
-      projects: ['tests/apply-org-rulesets'],
+      projects: ['tests/apply-org-rulesets', 'tests/review-events'],
       restoreMocks: true,
       unstubEnvs: true,
       unstubGlobals: true,

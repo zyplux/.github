@@ -2,7 +2,15 @@ packages:
   - apps/*
   - tests/*
 
+allowBuilds:
+  esbuild: true
+  workerd: true
+
 catalog:
+  '@cloudflare/workers-types': ^5.20261030.1
+  '@octokit/auth-app': ^8.3.1
+  '@octokit/core': ^7.0.8
+  '@octokit/webhooks-methods': ^6.0.0
   '@types/node': ^26.6.5
   '@vitest/coverage-istanbul': ^5.0.5
   '@zyplux/cz': ^0.16.0
@@ -14,6 +22,7 @@ catalog:
   prettier: ^3.9.10
   typescript: ^6.0.3
   vitest: ^5.0.5
+  wrangler: ^4.156.0
   zod: ^4.6.7
 
 minimumReleaseAge: 1440

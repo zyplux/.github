@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       pr:
-        description: Pull request number for a manual refresh
+        description: Pull request number to evaluate
         type: string
         default: ''
 
@@ -18,9 +18,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  bot_review_watcher:
+  bot_review_check:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 5
     container: ghcr.io/zyplux/ci:0.1.1
     steps:
       - name: Check out gate script

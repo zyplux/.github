@@ -2,7 +2,7 @@
 
 ## 4.1 status delivery
 
-### 4.1.1 continues when the pending status post fails
+### 4.1.1 reports status delivery failures
 
 ## 4.2 status delivery
 

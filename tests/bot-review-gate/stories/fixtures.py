@@ -12,7 +12,6 @@ PR = "1"
 SHA = "headsha"
 TIMESTAMP = "2026-10-19T01:00:00Z"
 LATER = "2026-10-19T01:01:00Z"
-MAX_POLL_ATTEMPTS = 3
 COPILOT_QUOTA_MESSAGE = (
     "Copilot was unable to review this pull request because the user who requested the review "
     "has reached their quota limit."
