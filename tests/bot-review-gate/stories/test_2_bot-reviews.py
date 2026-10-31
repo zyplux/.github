@@ -258,3 +258,21 @@ def test_2_2_16_requires_both_codex_reviews_on_the_current_head(bot_gate: GateHa
     assert bot_gate.run() == 0
     assert bot_gate.statuses[-1].state == "pending"
     assert bot_gate.statuses[-1].description == f"Waiting for Codex {review.title()} Review on the current head"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        '{"code_review":{"commit_sha":"older-head"}}',
+        '{"code_review":{"commit_sha":"older-head"},"security_review":null}',
+        '{"security_review":{"commit_sha":"older-head"}}',
+        '{"security_review":{"commit_sha":"older-head"},"code_review":null}',
+    ],
+)
+def test_2_2_17_ignores_partial_codex_summaries_from_older_heads(bot_gate: GateHarness, body: str) -> None:
+    bot_gate.arrange_clean_pass()
+    bot_gate.set_comments([{**codex_comment(), "body": f"<!-- codex-review-state:v1 {body} -->"}])
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "success"
+    assert bot_gate.statuses[-1].description == "Copilot review clean"

@@ -43,3 +43,5 @@
 ### 2.2.15 fails when either codex review fails
 
 ### 2.2.16 requires both codex reviews on the current head
+
+### 2.2.17 ignores partial codex summaries from older heads

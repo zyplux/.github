@@ -182,9 +182,9 @@ def parse_codex_state(comment: JsonObject, sha: str) -> BotReview:
         parse_codex_review(state.get("code_review"), sha, "Code"),
         parse_codex_review(state.get("security_review"), sha, "Security"),
     ]
-    if all(review.state == "missing" for review in reviews):
-        return BotReview("missing", "Codex review not started on the current head")
     commit_sha = sha if any(review.commit_sha == sha for review in reviews) else ""
+    if not commit_sha and any(review.state == "missing" for review in reviews):
+        return BotReview("missing", "Codex review not started on the current head")
     for review_state in ("blocked", "pending", "missing"):
         for review in reviews:
             if review.state == review_state:
