@@ -26,7 +26,7 @@ def test_2_1_1_accepts_codex_when_copilot_has_not_started(bot_gate: GateHarness,
 
     assert bot_gate.run() == 0
     assert bot_gate.statuses[-1].state == "success"
-    assert bot_gate.statuses[-1].description == "Codex review clean"
+    assert bot_gate.statuses[-1].description == "Codex code and security reviews clean"
 
 
 def test_2_1_2_waits_for_both_current_head_reviews(bot_gate: GateHarness) -> None:
@@ -89,10 +89,11 @@ def test_2_2_2_rejects_a_spoofed_bot_summary(bot_gate: GateHarness) -> None:
     assert bot_gate.statuses[-1].state == "pending"
 
 
-def test_2_2_3_requires_code_review_instead_of_security_review(bot_gate: GateHarness) -> None:
+@pytest.mark.parametrize("review", ["code_review", "security_review"])
+def test_2_2_3_requires_both_codex_reviews(bot_gate: GateHarness, review: str) -> None:
     bot_gate.arrange_clean_pass()
     comment = codex_comment()
-    comment["body"] = str(comment["body"]).replace("code_review", "security_review")
+    comment["body"] = str(comment["body"]).replace(review, "other_review")
     bot_gate.set_comments([comment])
 
     assert bot_gate.run() == 0
@@ -122,7 +123,7 @@ def test_2_2_6_ignores_a_copilot_quota_denial_for_an_older_head(bot_gate: GateHa
 
     assert bot_gate.run() == 0
     assert bot_gate.statuses[-1].state == "success"
-    assert bot_gate.statuses[-1].description == "Codex review clean"
+    assert bot_gate.statuses[-1].description == "Codex code and security reviews clean"
 
 
 def test_2_2_7_waits_for_a_copilot_retry_after_quota_denial(bot_gate: GateHarness) -> None:
@@ -156,7 +157,7 @@ def test_2_2_13_accepts_completed_codex_summary_without_unresolved_finding_flag(
 
     assert bot_gate.run() == 0
     assert bot_gate.statuses[-1].state == "success"
-    assert bot_gate.statuses[-1].description == "Codex review clean"
+    assert bot_gate.statuses[-1].description == "Codex code and security reviews clean"
 
 
 @pytest.mark.parametrize("state", ["DISMISSED", "PENDING", "UNKNOWN"])
@@ -205,4 +206,73 @@ def test_2_2_12_recognizes_insufficient_remaining_copilot_quota(bot_gate: GateHa
 
     assert bot_gate.run() == 0
     assert bot_gate.statuses[-1].state == "success"
-    assert bot_gate.statuses[-1].description == "Codex review clean"
+    assert bot_gate.statuses[-1].description == "Codex code and security reviews clean"
+
+
+@pytest.mark.parametrize("review", ["code", "security"])
+@pytest.mark.parametrize("status", ["queued", "running", "in_progress"])
+def test_2_2_14_waits_for_both_codex_reviews_in_either_completion_order(
+    bot_gate: GateHarness, review: str, status: str
+) -> None:
+    bot_gate.arrange_clean_pass()
+    unfinished = codex_comment(status=status) if review == "code" else codex_comment(security_review={"status": status})
+    bot_gate.set_comments([unfinished], [codex_comment()])
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "pending"
+    assert review.casefold() in bot_gate.statuses[-1].description.casefold()
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "success"
+    assert bot_gate.statuses[-1].description == "Copilot review clean; Codex code and security reviews clean"
+
+
+@pytest.mark.parametrize("review", ["code", "security"])
+@pytest.mark.parametrize("status", ["failed", "cancelled", "error"])
+@pytest.mark.parametrize("other_status", ["running", "completed"])
+def test_2_2_15_fails_when_either_codex_review_fails(
+    bot_gate: GateHarness, review: str, status: str, other_status: str
+) -> None:
+    bot_gate.arrange_clean_pass()
+    comment = (
+        codex_comment(status=status, security_review={"status": other_status})
+        if review == "code"
+        else codex_comment(status=other_status, security_review={"status": status})
+    )
+    bot_gate.set_comments([comment])
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "failure"
+    assert bot_gate.statuses[-1].description == f"Codex {review.title()} Review {status}"
+
+
+@pytest.mark.parametrize("review", ["code", "security"])
+def test_2_2_16_requires_both_codex_reviews_on_the_current_head(bot_gate: GateHarness, review: str) -> None:
+    bot_gate.arrange_clean_pass()
+    comment = (
+        codex_comment("older-head", security_review={"commit_sha": SHA})
+        if review == "code"
+        else codex_comment(security_review={"commit_sha": "older-head"})
+    )
+    bot_gate.set_comments([comment])
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "pending"
+    assert bot_gate.statuses[-1].description == f"Waiting for Codex {review.title()} Review on the current head"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        '{"code_review":{"commit_sha":"older-head"}}',
+        '{"code_review":{"commit_sha":"older-head"},"security_review":null}',
+        '{"security_review":{"commit_sha":"older-head"}}',
+        '{"security_review":{"commit_sha":"older-head"},"code_review":null}',
+    ],
+)
+def test_2_2_17_ignores_partial_codex_summaries_from_older_heads(bot_gate: GateHarness, body: str) -> None:
+    bot_gate.arrange_clean_pass()
+    bot_gate.set_comments([{**codex_comment(), "body": f"<!-- codex-review-state:v1 {body} -->"}])
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "success"
+    assert bot_gate.statuses[-1].description == "Copilot review clean"

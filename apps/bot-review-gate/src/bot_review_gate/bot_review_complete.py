@@ -154,6 +154,19 @@ def find_copilot_review(reviews: list[JsonObject], runs: list[JsonObject], sha: 
     return BotReview("clean", "Copilot review clean", url)
 
 
+def parse_codex_review(review: Json, sha: str, name: str) -> BotReview:
+    if not isinstance(review, dict):
+        return BotReview("pending", f"Waiting for readable Codex {name} Review state")
+    if review.get("commit_sha") != sha:
+        return BotReview("missing", f"Waiting for Codex {name} Review on the current head")
+    status = review.get("status")
+    if isinstance(status, str) and status in {"failed", "cancelled", "error"}:
+        return BotReview("blocked", f"Codex {name} Review {status}", commit_sha=sha)
+    if status == "completed" and (name == "Security" or isinstance(review.get("has_any_findings"), bool)):
+        return BotReview("clean", f"Codex {name} Review clean", commit_sha=sha)
+    return BotReview("pending", f"Waiting for Codex {name} Review to complete", commit_sha=sha)
+
+
 def parse_codex_state(comment: JsonObject, sha: str) -> BotReview:
     url = cast("str", comment.get("html_url") or "")
     body = cast("str", comment.get("body") or "")
@@ -163,17 +176,22 @@ def parse_codex_state(comment: JsonObject, sha: str) -> BotReview:
         state = json.loads(encoded)
     except ValueError:
         state = None
-    if not isinstance(state, dict) or not isinstance(state.get("code_review"), dict):
+    if not isinstance(state, dict):
         return pending
-    review = cast("JsonObject", state["code_review"])
-    if review.get("commit_sha") != sha:
+    reviews = [
+        parse_codex_review(state.get("code_review"), sha, "Code"),
+        parse_codex_review(state.get("security_review"), sha, "Security"),
+    ]
+    commit_sha = sha if any(review.commit_sha == sha for review in reviews) else ""
+    if not commit_sha and any(review.state == "missing" for review in reviews):
         return BotReview("missing", "Codex review not started on the current head")
-    if review.get("status") == "completed" and isinstance(review.get("has_any_findings"), bool):
-        return BotReview("clean", "Codex review clean", url, sha)
-    status = review.get("status")
-    if isinstance(status, str) and status in {"failed", "cancelled", "error"}:
-        return BotReview("blocked", f"Codex review {review['status']}", url, sha)
-    return BotReview("pending", "Waiting for Codex Code Review to complete", url, sha)
+    for review_state in ("blocked", "pending", "missing"):
+        for review in reviews:
+            if review.state == review_state:
+                return BotReview(
+                    "blocked" if review_state == "blocked" else "pending", review.description, url, commit_sha
+                )
+    return BotReview("clean", "Codex code and security reviews clean", url, sha)
 
 
 def assess_codex_quota(
@@ -215,7 +233,7 @@ def find_codex_review(comments: list[JsonObject], reviews: list[JsonObject], sha
         return assess_codex_quota(latest, summary, comments, sha)
     if CODEX_STATE_MARKER in body:
         return parse_codex_state(latest, sha)
-    return BotReview("pending", "Waiting for Codex Code Review state")
+    return BotReview("pending", "Waiting for Codex code and security review state")
 
 
 def count_unresolved_threads(repo: str, pr: str) -> int:

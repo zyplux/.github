@@ -28,6 +28,8 @@
 
 ### 3.2.8 invalidates success when a second review finds issues
 
+### 3.2.9 blocks security findings without summary finding flags
+
 ## 3.3 review verdict
 
 ### 3.3.1 codex failures do not count as unavailability
