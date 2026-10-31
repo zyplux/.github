@@ -7,6 +7,10 @@ on:
         description: Pull request number to evaluate
         type: string
         default: ''
+      sha:
+        description: Pull request head commit to evaluate
+        type: string
+        default: ''
 
 permissions:
   statuses: write
@@ -35,5 +39,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number || github.event.issue.number || inputs.pr }}
-          SHA: ${{ github.event.pull_request.head.sha }}
+          SHA: ${{ inputs.sha || github.event.pull_request.head.sha }}
         run: uv run --python 3.14 gate/apps/bot-review-gate/src/bot_review_gate/bot_review_complete.py

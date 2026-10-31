@@ -33,6 +33,9 @@ export const test = base
           ]),
         );
       }
+      if (endpoint.endsWith('/pulls/62')) {
+        return Promise.resolve(Response.json({ head: { sha: HEAD_SHA } }));
+      }
       return Promise.resolve(new Response(undefined, { status: 204 }));
     }),
   )

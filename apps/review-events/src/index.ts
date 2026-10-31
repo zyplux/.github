@@ -5,7 +5,7 @@ import ruleset from '@rulesets/copilot-review.json' with { type: 'json' };
 import { createPrivateKey } from 'node:crypto';
 import * as z from 'zod';
 
-import { CommitPullsSchema, JsonObjectSchema, ReviewEventSchema } from './contracts.ts';
+import { CommitPullsSchema, JsonObjectSchema, PullHeadSchema, ReviewEventSchema } from './contracts.ts';
 
 const GITHUB_TIMEOUT_MS = 8000;
 
@@ -14,7 +14,11 @@ const selectPulls = async ({ body, event }: z.infer<typeof ReviewEventSchema>, g
     case 'check_run':
     case 'workflow_run': {
       const run = event === 'check_run' ? body.check_run : body.workflow_run;
-      if (!['copilot-pull-request-reviewer', 'Running Copilot Code Review'].includes(run.name)) return [];
+      const isCopilot =
+        event === 'check_run'
+          ? body.check_run.name === 'copilot-pull-request-reviewer'
+          : body.workflow_run.display_title === 'Running Copilot Code Review';
+      if (!isCopilot) return [];
       const { data } = await github.request('GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls', {
         commit_sha: run.head_sha,
         owner: body.repository.owner.login,
@@ -24,7 +28,10 @@ const selectPulls = async ({ body, event }: z.infer<typeof ReviewEventSchema>, g
     }
     case 'issue_comment': {
       return body.issue.pull_request !== undefined &&
-        (body.comment.user.type === 'Bot' || /@codex\s+review\b/iu.test(body.comment.body))
+        (body.action === 'edited' ||
+          body.action === 'deleted' ||
+          body.comment.user.type === 'Bot' ||
+          /@codex\s+review\b/iu.test(body.comment.body))
         ? [body.issue]
         : [];
     }
@@ -69,8 +76,17 @@ const forwardReview = async (
   });
   const pulls = await selectPulls(parsed.data, github);
   for (const pull of pulls) {
+    let sha = pull.head?.sha;
+    if (sha === undefined) {
+      const { data } = await github.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
+        owner: repository.owner.login,
+        pull_number: pull.number,
+        repo: repository.name,
+      });
+      sha = PullHeadSchema.parse(data).head.sha;
+    }
     await github.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
-      inputs: { pr: String(pull.number) },
+      inputs: { pr: String(pull.number), sha },
       owner: repository.owner.login,
       ref: repository.default_branch,
       repo: repository.name,

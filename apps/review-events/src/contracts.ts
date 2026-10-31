@@ -1,8 +1,9 @@
 import * as z from 'zod';
 
 export const JsonObjectSchema = z.record(z.string(), z.unknown());
-const PullSchema = z.object({ number: z.int().positive() });
 const CommitSchema = z.string().regex(/^[\da-f]{40}$/u);
+export const PullHeadSchema = z.object({ head: z.object({ sha: CommitSchema }) });
+const PullSchema = z.object({ head: PullHeadSchema.shape.head.optional(), number: z.int().positive() });
 const RunSchema = z.object({ head_sha: CommitSchema, name: z.string() });
 export const CommitPullsSchema = z.array(
   PullSchema.extend({ head: z.object({ sha: CommitSchema }), state: z.enum(['open', 'closed']) }),
@@ -39,7 +40,7 @@ export const ReviewEventSchema = z.discriminatedUnion('event', [
   }),
   z.object({
     body: EnvelopeSchema.extend({
-      workflow_run: RunSchema,
+      workflow_run: RunSchema.extend({ display_title: z.string().optional() }),
     }),
     event: z.literal('workflow_run'),
   }),

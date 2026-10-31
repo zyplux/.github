@@ -1,8 +1,8 @@
 # Review events
 
-This Cloudflare Worker authenticates GitHub App webhooks and dispatches each affected repository's `org_gate.yml`. The Python [review gate](../bot-review-gate) evaluates the current PR head once and publishes `bot-review-complete`. Review verdicts stay in that gate; the Worker selects notifications and forwards PR numbers.
+This Cloudflare Worker authenticates GitHub App webhooks and dispatches each affected repository's `org_gate.yml`. The Python [review gate](../bot-review-gate) evaluates the current PR head once and publishes `bot-review-complete`. Review verdicts stay in that gate; the Worker selects notifications and forwards PR numbers and head SHAs.
 
-PR opening, pushes and readiness changes start checks. Bot summary edits, reviews, thread resolution/reopening and Copilot check/workflow activity refresh them. Unrelated CI workflows and ordinary comments are ignored. Repository exclusions come from the [review ruleset](../../rulesets/copilot-review.json).
+PR opening, pushes and readiness changes start checks. Bot summary edits, reviews, PR-comment edits/deletions, thread resolution/reopening and Copilot check/workflow activity refresh them. Unrelated CI workflows and ordinary new comments are ignored. Repository exclusions come from the [review ruleset](../../rulesets/copilot-review.json).
 
 ## Deployment
 

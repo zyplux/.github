@@ -46,7 +46,10 @@ describe('1.2 refreshing the aggregate review gate', () => {
       const dispatch = github.mock.calls.find(([url]) => new Request(url).url.endsWith('/dispatches'));
       expect(dispatch).toEqual([
         'https://api.github.com/repos/zyplux/zyp-vps/actions/workflows/org_gate.yml/dispatches',
-        expect.objectContaining({ body: JSON.stringify({ inputs: { pr: '62' }, ref: 'main' }), method: 'POST' }),
+        expect.objectContaining({
+          body: JSON.stringify({ inputs: { pr: '62', sha: HEAD_SHA }, ref: 'main' }),
+          method: 'POST',
+        }),
       ]);
     },
   );
@@ -95,14 +98,19 @@ describe('1.2 refreshing the aggregate review gate', () => {
     ).resolves.toMatchObject({ status: 204 });
     const dispatches = github.mock.calls.filter(([url]) => new Request(url).url.endsWith('/dispatches'));
     expect(dispatches).toHaveLength(1);
-    expect(dispatches[0]?.[1]?.body).toBe(JSON.stringify({ inputs: { pr: '62' }, ref: 'main' }));
+    expect(dispatches[0]?.[1]?.body).toBe(JSON.stringify({ inputs: { pr: '62', sha: HEAD_SHA }, ref: 'main' }));
   });
 
   test('1.2.6 refreshes a later Copilot workflow start', async ({ github, webhook }) => {
     await expect(
       webhook.send('workflow_run', {
         action: 'in_progress',
-        workflow_run: { head_sha: HEAD_SHA, name: 'Running Copilot Code Review', pull_requests: [] },
+        workflow_run: {
+          display_title: 'Running Copilot Code Review',
+          head_sha: HEAD_SHA,
+          name: 'Copilot',
+          pull_requests: [],
+        },
       }),
     ).resolves.toMatchObject({ status: 204 });
     expect(github).toHaveBeenCalledWith(expect.stringContaining('/dispatches'), expect.anything());
@@ -114,6 +122,33 @@ describe('1.2 refreshing the aggregate review gate', () => {
     await expect(webhook.send('pull_request_review_thread', { pull_request: { number: 62 } })).resolves.toMatchObject({
       status: 502,
     });
+  });
+
+  test.for(['edited', 'deleted'])(
+    '1.2.8 refreshes removed review requests (%s)',
+    async (action, { github, webhook }) => {
+      await expect(
+        webhook.send('issue_comment', {
+          action,
+          comment: { body: 'request withdrawn', user: { type: 'User' } },
+          issue: { number: 62, pull_request: {} },
+        }),
+      ).resolves.toMatchObject({ status: 204 });
+      expect(github).toHaveBeenCalledWith(expect.stringContaining('/dispatches'), expect.anything());
+    },
+  );
+
+  test('1.2.9 forwards the webhook head without fetching the pull request', async ({ github, webhook }) => {
+    await expect(
+      webhook.send('pull_request_review_thread', {
+        action: 'resolved',
+        pull_request: { head: { sha: HEAD_SHA }, number: 62 },
+      }),
+    ).resolves.toMatchObject({ status: 204 });
+    expect(github.mock.calls.some(([url]) => new Request(url).url.endsWith('/pulls/62'))).toBe(false);
+    expect(github.mock.calls.find(([url]) => new Request(url).url.endsWith('/dispatches'))?.[1]?.body).toBe(
+      JSON.stringify({ inputs: { pr: '62', sha: HEAD_SHA }, ref: 'main' }),
+    );
   });
 });
 
