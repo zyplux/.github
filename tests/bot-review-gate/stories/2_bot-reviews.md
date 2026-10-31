@@ -35,3 +35,5 @@
 ### 2.2.11 ignores codex quota denial without current head context
 
 ### 2.2.12 recognizes insufficient remaining copilot quota
+
+### 2.2.13 accepts completed codex summary without unresolved finding flag
