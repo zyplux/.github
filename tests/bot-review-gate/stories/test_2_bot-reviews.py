@@ -142,6 +142,21 @@ def test_2_2_8_observes_newer_codex_summary_edits(bot_gate: GateHarness) -> None
     assert bot_gate.statuses[-1].state == "success"
 
 
+def test_2_2_8_accepts_completed_codex_summary_without_unresolved_finding_flag(
+    bot_gate: GateHarness,
+) -> None:
+    bot_gate.arrange_clean_pass()
+    comment = codex_comment(has_findings=True)
+    body = str(comment["body"]).replace('"has_unresolved_findings": false', '"has_unresolved_findings": null')
+    bot_gate.set_check_run_reads([])
+    bot_gate.set_reviews([])
+    bot_gate.set_comments([{**comment, "body": body}])
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "success"
+    assert bot_gate.statuses[-1].description == "Codex review clean"
+
+
 @pytest.mark.parametrize("state", ["DISMISSED", "PENDING", "UNKNOWN"])
 def test_2_2_9_rejects_invalid_copilot_review_states(bot_gate: GateHarness, state: str) -> None:
     bot_gate.arrange_clean_pass()

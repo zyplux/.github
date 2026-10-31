@@ -173,11 +173,7 @@ def parse_codex_state(comment: JsonObject, sha: str) -> BotReview:
     review = cast("JsonObject", state["code_review"])
     if review.get("commit_sha") != sha:
         return BotReview("missing", "Codex review not started on the current head")
-    if (
-        review.get("status") == "completed"
-        and isinstance(review.get("has_unresolved_findings"), bool)
-        and isinstance(review.get("has_any_findings"), bool)
-    ):
+    if review.get("status") == "completed" and isinstance(review.get("has_any_findings"), bool):
         return BotReview("clean", "Codex review clean", url, sha)
     status = review.get("status")
     if isinstance(status, str) and status in {"failed", "cancelled", "error"}:
