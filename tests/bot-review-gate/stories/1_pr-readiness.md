@@ -2,7 +2,7 @@
 
 ## 1.1 pr readiness
 
-### 1.1.1 waits for the pr to leave draft
+### 1.1.1 checks readiness on each event
 
 ### 1.1.2 leaves no status when the pr stays draft
 
@@ -12,4 +12,4 @@
 
 ### 1.1.5 loads the current head for manual refresh
 
-### 1.1.6 stops watching when the pr closes
+### 1.1.6 skips closed prs

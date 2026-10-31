@@ -6,7 +6,6 @@ import logging
 import os
 import re
 import sys
-import time
 import urllib.parse
 from dataclasses import dataclass
 from http import HTTPStatus
@@ -28,10 +27,6 @@ COPILOT_QUOTA_MESSAGES = {
 CODEX_QUOTA_PREFIX = "you have reached your codex usage limits for code reviews"
 PAGE_SIZE = 100
 HTTP_TIMEOUT_SECONDS = 30
-READY_POLL_ATTEMPTS = 40
-READY_POLL_SECONDS = 5
-REVIEW_POLL_ATTEMPTS = 120
-REVIEW_POLL_SECONDS = 15
 
 REVIEW_THREADS_QUERY = """
 query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
@@ -279,70 +274,35 @@ def post_status(repo: str, sha: str, state: str, description: str, target_url: s
     _request("POST", f"repos/{repo}/statuses/{sha}", payload)
 
 
-def wait_for_ready(repo: str, pr: str, sha: str) -> str:
-    read_ok = False
-    for _ in range(READY_POLL_ATTEMPTS):
-        try:
-            pull = fetch_pull(repo, pr)
-        except OSError, http.client.HTTPException, GitHubApiError:
-            time.sleep(READY_POLL_SECONDS)
-            continue
-        if get_head_sha(pull) != sha:
-            return "stale"
-        if pull["draft"] is False:
-            return "ready"
-        read_ok = True
-        time.sleep(READY_POLL_SECONDS)
-    return "draft" if read_ok else "unreadable"
-
-
-def watch_reviews(repo: str, pr: str, sha: str) -> int:
-    previous: tuple[str, str] | None = None
-    for attempt in range(REVIEW_POLL_ATTEMPTS + 1):
-        pull = fetch_pull(repo, pr)
-        if get_head_sha(pull) != sha or pull["draft"] or pull.get("state") == "closed":
-            logger.info("PR head, readiness or open state changed; stopping this watcher")
-            return 0
-        reviews = fetch_pages(f"repos/{repo}/pulls/{pr}/reviews")
-        comments = fetch_pages(f"repos/{repo}/issues/{pr}/comments")
-        query = urllib.parse.urlencode({"check_name": COPILOT_CHECK_NAME})
-        runs = fetch_pages(f"repos/{repo}/commits/{sha}/check-runs?{query}", "check_runs")
-        copilot = find_copilot_review(reviews, runs, sha)
-        codex = find_codex_review(comments, reviews, sha)
-        unresolved = count_unresolved_threads(repo, pr)
-        verdict = build_status(copilot, codex, unresolved)
-        if verdict != previous:
-            post_status(repo, sha, *verdict, codex.url or copilot.url)
-            previous = verdict
-        has_missing_review = "missing" in {copilot.state, codex.state}
-        if (verdict[0] == "success" and not has_missing_review) or copilot.state == codex.state == "unavailable":
-            return 0
-        if attempt < REVIEW_POLL_ATTEMPTS:
-            time.sleep(REVIEW_POLL_SECONDS)
-    return 0
+def check_reviews(repo: str, pr: str, sha: str) -> None:
+    reviews = fetch_pages(f"repos/{repo}/pulls/{pr}/reviews")
+    comments = fetch_pages(f"repos/{repo}/issues/{pr}/comments")
+    query = urllib.parse.urlencode({"check_name": COPILOT_CHECK_NAME})
+    runs = fetch_pages(f"repos/{repo}/commits/{sha}/check-runs?{query}", "check_runs")
+    copilot = find_copilot_review(reviews, runs, sha)
+    codex = find_codex_review(comments, reviews, sha)
+    unresolved = count_unresolved_threads(repo, pr)
+    post_status(repo, sha, *build_status(copilot, codex, unresolved), codex.url or copilot.url)
 
 
 def main() -> int:
     repo = os.environ["REPO"]
     pr = str(int(os.environ["PR"]))
-    sha = os.environ.get("SHA") or get_head_sha(fetch_pull(repo, pr))
-    readiness = wait_for_ready(repo, pr, sha)
-    if readiness == "unreadable":
-        post_status(repo, sha, "error", "Could not read PR draft state to gate bot reviews")
-        return 1
-    if readiness != "ready":
-        logger.info("PR is draft or this head is stale; bot reviews are not gated by this run")
-        return 0
+    sha = os.environ.get("SHA", "")
     try:
-        post_status(repo, sha, "pending", "Waiting for bot reviews to complete")
-    except OSError, http.client.HTTPException, GitHubApiError:
-        logger.warning("::warning::could not post pending %s status; continuing", STATUS_CONTEXT)
-    try:
-        return watch_reviews(repo, pr, sha)
+        pull = fetch_pull(repo, pr)
+        sha = sha or get_head_sha(pull)
+        if get_head_sha(pull) != sha or pull["draft"] or pull.get("state") == "closed":
+            logger.info("PR is draft, closed or this head is stale; skipping this check")
+            return 0
+        check_reviews(repo, pr, sha)
     except OSError, http.client.HTTPException, RuntimeError, KeyError, TypeError, ValueError:
-        post_status(repo, sha, "error", "Could not read bot review state from GitHub")
+        if sha:
+            post_status(repo, sha, "error", "Could not evaluate bot reviews from GitHub")
         logger.exception("::error::could not evaluate bot reviews")
         return 1
+    else:
+        return 0
 
 
 if __name__ == "__main__":

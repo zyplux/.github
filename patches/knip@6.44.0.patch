@@ -1,0 +1,57 @@
+diff --git a/dist/ConfigurationChief.d.ts b/dist/ConfigurationChief.d.ts
+index 5bc97f7692e8c44c8524e4d807d7caf5532f9c4a..a740d9b9cc1fc64d67560a949e6666ca8146b6dd 100644
+--- a/dist/ConfigurationChief.d.ts
++++ b/dist/ConfigurationChief.d.ts
+@@ -34,8 +34,8 @@ export declare class ConfigurationChief {
+     additionalWorkspaceNames: Set<string>;
+     availableWorkspaceNames: string[];
+     availableWorkspacePkgNames: Set<string>;
+-    availableWorkspaceDirs: string[];
+-    private availableWorkspaceDirsWithSlash;
++    workspaceDirs: string[];
++    private workspaceDirsWithSlash;
+     workspaceGraph: WorkspaceGraph;
+     private workspaceByFileCache;
+     constructor(options: MainOptions);
+diff --git a/dist/ConfigurationChief.js b/dist/ConfigurationChief.js
+index e13fd541a8f885ced277ce403fca2c3f67276219..f2bd324b5ea081135321dafd0c10a82b64bbfd3e 100644
+--- a/dist/ConfigurationChief.js
++++ b/dist/ConfigurationChief.js
+@@ -64,8 +64,8 @@ export class ConfigurationChief {
+     additionalWorkspaceNames = new Set();
+     availableWorkspaceNames = [];
+     availableWorkspacePkgNames = new Set();
+-    availableWorkspaceDirs = [];
+-    availableWorkspaceDirsWithSlash = [];
++    workspaceDirs = [];
++    workspaceDirsWithSlash = [];
+     workspaceGraph = new Map();
+     workspaceByFileCache = new Map();
+     constructor(options) {
+@@ -141,11 +141,11 @@ export class ConfigurationChief {
+         this.workspacePackages = packages;
+         this.availableWorkspaceNames = this.getAvailableWorkspaceNames(packages.keys());
+         this.availableWorkspacePkgNames = wsPkgNames;
+-        this.availableWorkspaceDirs = this.availableWorkspaceNames
++        this.workspaceDirs = Array.from(packages.keys())
+             .sort(byPathDepth)
+             .reverse()
+             .map(dir => join(this.cwd, dir));
+-        this.availableWorkspaceDirsWithSlash = this.availableWorkspaceDirs.map(dir => `${dir}/`);
++        this.workspaceDirsWithSlash = this.workspaceDirs.map(dir => `${dir}/`);
+         this.workspaceGraph = createWorkspaceGraph(this.cwd, this.availableWorkspaceNames, wsPkgNames, packages);
+         this.selectedWorkspaces = this.getSelectedWorkspaces();
+         this.workspaceFilePathFilter = createWorkspaceFilePathFilter(this.cwd, this.selectedWorkspaces, this.availableWorkspaceNames);
+@@ -373,9 +373,9 @@ export class ConfigurationChief {
+         if (this.workspaceByFileCache.has(filePath))
+             return this.workspaceByFileCache.get(filePath);
+         let workspace;
+-        for (let i = 0; i < this.availableWorkspaceDirsWithSlash.length; i++) {
+-            if (filePath.startsWith(this.availableWorkspaceDirsWithSlash[i])) {
+-                workspace = this.workspacesByDir.get(this.availableWorkspaceDirs[i]);
++        for (let i = 0; i < this.workspaceDirsWithSlash.length; i++) {
++            if (filePath.startsWith(this.workspaceDirsWithSlash[i])) {
++                workspace = this.workspacesByDir.get(this.workspaceDirs[i]);
+                 break;
+             }
+         }

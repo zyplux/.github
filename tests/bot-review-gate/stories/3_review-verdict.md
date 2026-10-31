@@ -16,7 +16,7 @@
 
 ### 3.2.2 counts only unresolved bot threads
 
-### 3.2.3 observes thread resolution while watching
+### 3.2.3 observes thread resolution on the next event
 
 ### 3.2.4 paginates review threads before passing
 

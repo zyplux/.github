@@ -35,27 +35,29 @@ def test_2_1_2_waits_for_both_current_head_reviews(bot_gate: GateHarness) -> Non
     bot_gate.set_comments([codex_comment("old-sha")], [codex_comment()])
 
     assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "pending"
+    assert bot_gate.run() == 0
     assert bot_gate.statuses[-1].state == "success"
 
 
-@pytest.mark.parametrize("minutes", [17, 30])
-def test_2_1_3_accepts_reviews_within_thirty_minutes(
-    full_watch_gate: GateHarness, poll_sleeps: list[float], minutes: int
-) -> None:
-    full_watch_gate.arrange_clean_pass()
-    full_watch_gate.set_check_run_reads(*[[copilot_run("in_progress")]] * (minutes * 60 // 15), [copilot_run()])
-
-    assert full_watch_gate.run() == 0
-    assert full_watch_gate.statuses[-1].state == "success"
-    assert sum(poll_sleeps) == minutes * 60
-
-
-def test_2_1_4_keeps_timed_out_reviews_pending(bot_gate: GateHarness) -> None:
+def test_2_1_3_checks_pending_reviews_once(bot_gate: GateHarness) -> None:
     bot_gate.arrange_clean_pass()
     bot_gate.set_check_run_reads([copilot_run("in_progress")])
 
     assert bot_gate.run() == 0
+    assert [status.state for status in bot_gate.statuses] == ["pending"]
+    reads = [url for method, url, _ in bot_gate.github.requests if method == "GET" and "/check-runs?" in url]
+    assert len(reads) == 1
+
+
+def test_2_1_4_accepts_completion_on_a_later_event(bot_gate: GateHarness) -> None:
+    bot_gate.arrange_clean_pass()
+    bot_gate.set_check_run_reads([copilot_run("in_progress")], [copilot_run()])
+
+    assert bot_gate.run() == 0
     assert bot_gate.statuses[-1].state == "pending"
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "success"
 
 
 @pytest.mark.parametrize(

@@ -2,18 +2,27 @@ packages:
   - apps/*
   - tests/*
 
+allowBuilds:
+  esbuild: true
+  workerd: true
+
 catalog:
-  '@types/node': ^26.6.5
+  '@cloudflare/workers-types': ^5.20261030.1
+  '@octokit/auth-app': ^8.3.1
+  '@octokit/core': ^7.0.8
+  '@octokit/webhooks-methods': ^6.0.0
+  '@types/node': ^26.6.6
   '@vitest/coverage-istanbul': ^5.0.5
   '@zyplux/cz': ^0.16.0
   '@zyplux/eslint-config': ^0.12.3
   '@zyplux/tsconfig': ^0.3.3
   '@zyplux/util': ^0.9.3
   eslint: ^10.13.0
-  knip: ^6.41.0
+  knip: ^6.44.0
   prettier: ^3.9.10
   typescript: ^6.0.3
   vitest: ^5.0.5
+  wrangler: ^4.156.0
   zod: ^4.6.7
 
 minimumReleaseAge: 1440
@@ -21,3 +30,7 @@ minimumReleaseAgeExcludePrune: true
 
 minimumReleaseAgeExclude:
   - '@zyplux/*'
+
+patchedDependencies:
+  # https://github.com/webpro-nl/knip/issues/2226
+  knip@6.44.0: patches/knip@6.44.0.patch

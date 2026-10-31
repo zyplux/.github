@@ -1,0 +1,4 @@
+{
+  "extends": "@zyplux/tsconfig/node.json",
+  "include": ["*.ts"]
+}

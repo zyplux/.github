@@ -1,4 +1,4 @@
-import { describe, expect, test } from './org-rulesets.ts';
+import { describe, expect, test } from './stories.ts';
 
 describe('1.1 discovering ruleset files', () => {
   test('1.1.1 applies every json file in name order', async ({ logs, org, rulesets }) => {

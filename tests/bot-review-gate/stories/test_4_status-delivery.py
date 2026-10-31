@@ -9,19 +9,21 @@ if TYPE_CHECKING:
     from fixtures import GateHarness
 
 
-def test_4_1_1_continues_when_the_pending_status_post_fails(bot_gate: GateHarness) -> None:
+def test_4_1_1_reports_status_delivery_failures(bot_gate: GateHarness) -> None:
     bot_gate.arrange_clean_pass()
     bot_gate.github.status_post_failures.append(OSError("network down"))
 
-    assert bot_gate.run() == 0
-    assert [status.state for status in bot_gate.statuses] == ["success"]
+    assert bot_gate.run() == 1
+    assert [status.state for status in bot_gate.statuses] == ["error"]
 
 
-@pytest.mark.parametrize("endpoint", ["reviews", "comments", "check-runs", "threads"])
+@pytest.mark.parametrize("endpoint", ["pull", "reviews", "comments", "check-runs", "threads"])
 def test_4_2_1_blocks_when_review_state_cannot_be_read(bot_gate: GateHarness, endpoint: str) -> None:
     bot_gate.arrange_clean_pass()
     error = OSError("network down")
-    if endpoint == "reviews":
+    if endpoint == "pull":
+        bot_gate.set_draft_reads(error)
+    elif endpoint == "reviews":
         bot_gate.set_reviews(error)
     elif endpoint == "comments":
         bot_gate.set_comments(error)

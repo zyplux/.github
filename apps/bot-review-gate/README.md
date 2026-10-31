@@ -22,11 +22,11 @@ Only explicit quota-denial responses from the known bot accounts count as unavai
 
 ## Running the gate
 
-[bot_review_complete.py](src/bot_review_gate/bot_review_complete.py) reads `REPO`, `PR`, `GH_TOKEN`, and optional `SHA`. The workflow token needs `checks: read`, `pull-requests: read`, and `statuses: write`. When `SHA` is omitted, a manual refresh evaluates the live head. A watcher stops when the PR becomes draft or its head changes.
+[bot_review_complete.py](src/bot_review_gate/bot_review_complete.py) reads `REPO`, `PR`, `GH_TOKEN`, and optional `SHA`. The workflow token needs `checks: read`, `pull-requests: read`, and `statuses: write`. When `SHA` is omitted, the check evaluates the live head. Draft and closed PRs, and superseded heads, are skipped.
 
-The gate waits up to 200 seconds for the PR to leave draft, then polls review state every 15 seconds for up to 30 minutes. After a one-bot success, polling continues so a second bot's activity can invalidate the verdict; closing the PR stops the watcher. It publishes verdict changes while waiting, so resolving findings can clear a failing status during that window. Reviews, issue comments, check-runs, and review threads are paginated.
+Each run reads the current review state, publishes one verdict and exits. Reviews, issue comments, check-runs and review threads are paginated. Pending reviews leave a blocking `pending` status; the runner finishes immediately. Exit code zero means evaluation completed, while the commit status carries the merge verdict. API failures publish `error` and exit with code one.
 
-The caller workflow refreshes the gate on PR and issue-comment activity. Polling reads reviews without triggering approval-gated workflow runs from Copilot review events. GitHub Actions has no thread-resolution trigger; resolve threads during an active watch or dispatch `org_gate` with the PR number to refresh it. Exit code zero means the watcher finished; the commit status carries the merge verdict. A pending status remains blocking after the watch window expires. API failures publish `error` and exit with code one.
+The [review event Worker](../review-events) dispatches `org_gate` on PR, review, summary and thread-resolution activity. A later review from the second bot triggers a fresh evaluation and can invalidate success. The workflow runs its trusted default-branch definition; the gate never checks out PR code. Manual `org_gate` dispatch with a PR number is available for diagnosis or webhook redelivery recovery.
 
 ## Rollout
 
@@ -34,4 +34,4 @@ Merge the shared workflow and script before applying the version-controlled org 
 
 The [resolve-pr-gate skill](https://github.com/zyplux/zyp-skills/tree/main/skills/resolve-pr-gate) reads `ci` and `bot-review-complete`, reports unresolved findings from both bots, and refreshes the verdict after threads are resolved. Install it from `zyplux/zyp-skills` to automate the review loop.
 
-Consuming repositories need at least one of Copilot or Codex Code Review enabled and must call the shared workflow. Use the caller in the [root README](../../README.md) to enable PR/issue-comment refreshes and manual dispatch. Existing PR-only callers still start the watcher on pushes and ready transitions.
+Consuming repositories need at least one of Copilot or Codex Code Review enabled and must use the [caller workflow](../../.github/workflows/org_gate.yml). Install the [GitHub App](../review-events/README.md#github-app-setup) for automatic dispatch.
