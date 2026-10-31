@@ -48,6 +48,7 @@ def codex_comment(
     *,
     has_findings: bool = False,
     unresolved: bool = False,
+    security_review: gate.JsonObject | None = None,
 ) -> gate.JsonObject:
     review = {
         "commit_sha": commit_sha,
@@ -57,7 +58,18 @@ def codex_comment(
     }
     return {
         "user": {"login": "chatgpt-codex-connector[bot]"},
-        "body": gate.CODEX_STATE_MARKER + json.dumps({"code_review": review}) + " -->",
+        "body": gate.CODEX_STATE_MARKER
+        + json.dumps({
+            "code_review": review,
+            "security_review": {
+                "commit_sha": commit_sha,
+                "status": "completed",
+                "has_any_findings": None,
+                "has_unresolved_findings": None,
+                **(security_review or {}),
+            },
+        })
+        + " -->",
         "updated_at": TIMESTAMP,
         "html_url": "https://github.com/comment/1",
     }

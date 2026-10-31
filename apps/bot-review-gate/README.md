@@ -1,6 +1,6 @@
 # Bot review gate
 
-The reusable [org gate](../../.github/workflows/org_gate_base.yml) publishes the required `bot-review-complete` commit status for Copilot and Codex Code Review.
+The reusable [org gate](../../.github/workflows/org_gate_base.yml) publishes the required `bot-review-complete` commit status for Copilot and Codex Code Review and Security Review.
 
 | Copilot | Codex | Gate |
 |---|---|---|
@@ -16,7 +16,7 @@ The reusable [org gate](../../.github/workflows/org_gate_base.yml) publishes the
 | Clean or no review detected | Review in progress | Pending |
 | Explicit quota denial | Explicit quota denial | Failure |
 
-At least one bot must complete a clean review of the current PR head. Only bots that have started reviewing that commit participate; queued requests alone do not block. Copilot must have a successful check-run and a submitted review; Codex must have a completed `code_review` entry in its bot-authored `codex-review-state:v1` summary. Live GitHub review threads determine whether findings remain unresolved; summary resolution flags can be stale. Security Review alone does not satisfy Code Review. The gate also checks unresolved threads from both bots, including threads on earlier commits.
+At least one bot must complete a clean review of the current PR head. Only bots that have started reviewing that commit participate; queued Copilot requests alone do not block. Copilot must have a successful check-run and a submitted review. Codex must have completed `code_review` and `security_review` entries for that commit in its bot-authored `codex-review-state:v1` summary. A missing, queued or running Codex review keeps the gate pending, even when the other review or Copilot is clean. Either Codex review failing or being cancelled makes the gate fail. Live GitHub review threads determine whether findings remain unresolved; summary resolution flags can be stale, and Security Review can report null finding flags after completion. The gate also checks unresolved threads from both bots, including threads on earlier commits.
 
 Only explicit quota-denial responses from the known bot accounts count as unavailable. API errors, failed checks, cancellations, and timeouts block the gate. Copilot's quota review must cover the current head; a newer check-run invalidates an earlier quota denial. Codex's quota response must have current-head context in its Code Review summary or submitted review. A newer review request or review activity supersedes the response.
 

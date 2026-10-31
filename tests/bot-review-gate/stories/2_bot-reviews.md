@@ -16,7 +16,7 @@
 
 ### 2.2.2 rejects a spoofed bot summary
 
-### 2.2.3 requires code review instead of security review
+### 2.2.3 requires both codex reviews
 
 ### 2.2.4 rechecks a new codex review request after quota denial
 
@@ -37,3 +37,9 @@
 ### 2.2.12 recognizes insufficient remaining copilot quota
 
 ### 2.2.13 accepts completed codex summary without unresolved finding flag
+
+### 2.2.14 waits for both codex reviews in either completion order
+
+### 2.2.15 fails when either codex review fails
+
+### 2.2.16 requires both codex reviews on the current head

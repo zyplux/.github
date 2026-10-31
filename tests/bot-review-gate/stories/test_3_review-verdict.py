@@ -71,7 +71,10 @@ def test_3_1_2_links_success_to_the_review_evidence(bot_gate: GateHarness) -> No
 
     assert bot_gate.run() == 0
     assert bot_gate.statuses[-1] == PostedStatus(
-        "success", "Copilot review clean; Codex review clean", "https://github.com/comment/1", "bot-review-complete"
+        "success",
+        "Copilot review clean; Codex code and security reviews clean",
+        "https://github.com/comment/1",
+        "bot-review-complete",
     )
 
 
@@ -191,6 +194,22 @@ def test_3_2_8_invalidates_success_when_a_second_review_finds_issues(bot_gate: G
     assert bot_gate.run() == 0
     assert bot_gate.run() == 0
     assert [status.state for status in bot_gate.statuses] == ["success", "failure"]
+
+
+def test_3_2_9_blocks_security_findings_without_summary_finding_flags(bot_gate: GateHarness) -> None:
+    bot_gate.arrange_clean_pass()
+    bot_gate.github.on(
+        "POST",
+        "graphql",
+        thread_page(review_thread("chatgpt-codex-connector")),
+        thread_page(review_thread("chatgpt-codex-connector", resolved=True)),
+    )
+
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "failure"
+    assert bot_gate.statuses[-1].description == "Bot reviews have 1 unresolved threads"
+    assert bot_gate.run() == 0
+    assert bot_gate.statuses[-1].state == "success"
 
 
 @pytest.mark.parametrize("state", ["failed", "cancelled", "error"])

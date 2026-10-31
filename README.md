@@ -21,7 +21,7 @@
 
 ## Reusable CI: org_gate_base
 
-The shared [bot review gate](apps/bot-review-gate/README.md) requires at least one clean Copilot or Codex Code Review for the current PR head. When both bots participate, both must pass. An explicit quota denial from one bot is accepted when the other completes a clean review. Unresolved findings, unfinished participating reviews, and unreadable evidence keep the gate blocking.
+The shared [bot review gate](apps/bot-review-gate/README.md) requires at least one clean Copilot or Codex review for the current PR head. Codex must complete both Code Review and Security Review. When both bots participate, both must pass. An explicit quota denial from one bot is accepted when the other completes a clean review. Unresolved findings, failed or unfinished participating reviews, and unreadable evidence keep the gate blocking.
 
 Every repository covered by the `copilot-review` ruleset must call the workflow and enable at least one reviewer. The ruleset requests Copilot automatically; configure Codex automatic reviews in its GitHub integration.
 
