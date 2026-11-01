@@ -8,6 +8,6 @@
     "emitDeclarationOnly": false,
     "types": ["node", "@cloudflare/workers-types"]
   },
-  "include": [".", "../../apps/review-events/src/worker-configuration.d.ts"],
-  "references": [{ "path": "../../apps/review-events" }]
+  "include": [".", "../../apps/zyplux/src/worker-configuration.d.ts"],
+  "references": [{ "path": "../../apps/zyplux" }]
 }

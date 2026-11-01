@@ -168,10 +168,10 @@ describe('1.3 ignoring unrelated activity', () => {
   );
 
   test('1.3.2 exposes health without accepting other routes', async ({ github, webhook }) => {
-    await expect(webhook.fetch(new Request('https://review-events.example/health'))).resolves.toMatchObject({
+    await expect(webhook.fetch(new Request('https://zyplux.example/health'))).resolves.toMatchObject({
       status: 200,
     });
-    await expect(webhook.fetch(new Request('https://review-events.example/'))).resolves.toMatchObject({ status: 404 });
+    await expect(webhook.fetch(new Request('https://zyplux.example/'))).resolves.toMatchObject({ status: 404 });
     expect(github).not.toHaveBeenCalled();
   });
 

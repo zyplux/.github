@@ -1,12 +1,12 @@
 {
-  "name": "@zyplux/tests-review-events",
+  "name": "@zyplux/tests-zyplux",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
     "@types/node": "catalog:",
-    "@zyplux/review-events": "workspace:*",
+    "@zyplux/zyplux": "workspace:*",
     "@zyplux/tsconfig": "catalog:",
     "vitest": "catalog:"
   }
