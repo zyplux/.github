@@ -49,7 +49,7 @@ const selectPulls = async ({ body, event }: z.infer<typeof ReviewEventSchema>, g
 
 const forwardEvent = async (
   request: Request,
-  { EVENTS_APP_ID: appId, EVENTS_APP_PRIVATE_KEY: privateKey, EVENTS_WEBHOOK_SECRET: webhookSecret }: Env,
+  { ZYPLUX_APP_ID: appId, ZYPLUX_APP_PRIVATE_KEY: privateKey, ZYPLUX_WEBHOOK_SECRET: webhookSecret }: Env,
 ) => {
   const payload = await request.text();
   const signature = request.headers.get('x-hub-signature-256');

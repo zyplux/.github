@@ -4,8 +4,8 @@
     { "path": "./tsconfig.tooling.json" },
     { "path": "./scripts" },
     { "path": "./apps/apply-org-rulesets" },
-    { "path": "./apps/github-events" },
+    { "path": "./apps/zyplux" },
     { "path": "./tests/apply-org-rulesets" },
-    { "path": "./tests/github-events" }
+    { "path": "./tests/zyplux" }
   ]
 }

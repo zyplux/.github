@@ -1,4 +1,4 @@
-import worker from '@zyplux/github-events';
+import worker from '@zyplux/zyplux';
 import { createHmac, generateKeyPairSync } from 'node:crypto';
 import { test as base, vi } from 'vitest';
 
@@ -10,7 +10,7 @@ const { privateKey } = generateKeyPairSync('rsa', {
   publicKeyEncoding: { format: 'pem', type: 'spki' },
 });
 
-const env = { EVENTS_APP_ID: '123', EVENTS_APP_PRIVATE_KEY: privateKey, EVENTS_WEBHOOK_SECRET: 'webhook-secret' };
+const env = { ZYPLUX_APP_ID: '123', ZYPLUX_APP_PRIVATE_KEY: privateKey, ZYPLUX_WEBHOOK_SECRET: 'webhook-secret' };
 const envelope = {
   action: 'created',
   installation: { id: 42 },
@@ -85,14 +85,14 @@ export const test = base
     send: async (event: string, body: Record<string, unknown>, signature?: string) => {
       const payload = JSON.stringify({ ...envelope, ...body });
       return worker.fetch(
-        new Request('https://github-events.example/events', {
+        new Request('https://zyplux.example/events', {
           body: payload,
           headers: {
             'content-type': 'application/json',
             'x-github-delivery': 'delivery-id',
             'x-github-event': event,
             'x-hub-signature-256':
-              signature ?? `sha256=${createHmac('sha256', env.EVENTS_WEBHOOK_SECRET).update(payload).digest('hex')}`,
+              signature ?? `sha256=${createHmac('sha256', env.ZYPLUX_WEBHOOK_SECRET).update(payload).digest('hex')}`,
           },
           method: 'POST',
         }),

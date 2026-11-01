@@ -26,7 +26,7 @@ Only explicit quota-denial responses from the known bot accounts count as unavai
 
 Each run reads the current review state, publishes one verdict and exits. Reviews, issue comments, check-runs and review threads are paginated. Pending reviews leave a blocking `pending` status; the runner finishes immediately. Exit code zero means evaluation completed, while the commit status carries the merge verdict. API failures publish `error` and exit with code one.
 
-The [GitHub event Worker](../github-events) dispatches `org_gate` on PR, review, summary and thread-resolution activity. A later review from the second bot triggers a fresh evaluation and can invalidate success. The workflow runs its trusted default-branch definition; the gate never checks out PR code. Manual `org_gate` dispatch with a PR number is available for diagnosis or webhook redelivery recovery.
+The [zyplux Worker](../zyplux) dispatches `org_gate` on PR, review, summary and thread-resolution activity. A later review from the second bot triggers a fresh evaluation and can invalidate success. The workflow runs its trusted default-branch definition; the gate never checks out PR code. Manual `org_gate` dispatch with a PR number is available for diagnosis or webhook redelivery recovery.
 
 ## Rollout
 
@@ -34,4 +34,4 @@ Merge the shared workflow and script before applying the version-controlled org 
 
 The [resolve-pr-gate skill](https://github.com/zyplux/zyp-skills/tree/main/skills/resolve-pr-gate) reads `ci` and `bot-review-complete`, reports unresolved findings from both bots, and refreshes the verdict after threads are resolved. Install it from `zyplux/zyp-skills` to automate the review loop.
 
-Consuming repositories need at least one of Copilot or Codex Code Review enabled and must use the [caller workflow](../../.github/workflows/org_gate.yml). Install the [GitHub App](../github-events/README.md#github-app-setup) for automatic dispatch.
+Consuming repositories need at least one of Copilot or Codex Code Review enabled and must use the [caller workflow](../../.github/workflows/org_gate.yml). Install the [GitHub App](../zyplux/README.md#github-app-setup) for automatic dispatch.

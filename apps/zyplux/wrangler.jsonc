@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "zyplux-github-events",
+  "name": "zyplux",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-31",
   "compatibility_flags": ["nodejs_compat"],
@@ -8,7 +8,7 @@
   "routes": [{ "pattern": "github-hooks.zyplux.ai", "custom_domain": true }],
   "preview_urls": false,
   "secrets": {
-    "required": ["EVENTS_APP_ID", "EVENTS_APP_PRIVATE_KEY", "EVENTS_WEBHOOK_SECRET"],
+    "required": ["ZYPLUX_APP_ID", "ZYPLUX_APP_PRIVATE_KEY", "ZYPLUX_WEBHOOK_SECRET"],
   },
   "observability": {
     "enabled": true,
