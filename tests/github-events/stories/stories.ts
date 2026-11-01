@@ -62,6 +62,11 @@ export const test = base
   .extend('headSha', () => HEAD_SHA)
   .extend('replyGitHub', () => replyGitHub)
   .extend('github', () => vi.spyOn(globalThis, 'fetch').mockImplementation(replyGitHub))
+  .extend('replyEndpoint', ({ github }) => (path: string, reply: Record<string, unknown>) => {
+    github.mockImplementation(url =>
+      new Request(url).url.includes(path) ? Promise.resolve(Response.json(reply)) : replyGitHub(url),
+    );
+  })
   .extend('configEvent', () => ({
     action: 'completed',
     repository: { ...envelope.repository, name: 'zyp-config-prod' },

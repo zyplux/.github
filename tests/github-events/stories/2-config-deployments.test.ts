@@ -38,14 +38,10 @@ describe('2.1 dispatching Worker config updates', () => {
     configEvent,
     github,
     headSha,
-    replyGitHub,
+    replyEndpoint,
     webhook,
   }) => {
-    github.mockImplementation(url =>
-      new Request(url).url.includes('/git/trees/')
-        ? Promise.resolve(Response.json({ tree: [{ path: 'workers', sha: 'a'.repeat(headSha.length), type: 'tree' }] }))
-        : replyGitHub(url),
-    );
+    replyEndpoint('/git/trees/', { tree: [{ path: 'workers', sha: 'a'.repeat(headSha.length), type: 'tree' }] });
 
     await expect(webhook.send('workflow_run', configEvent)).resolves.toMatchObject({ status: 204 });
     expect(github.mock.calls.some(([url]) => new Request(url).url.endsWith('/dispatches'))).toBe(false);
@@ -55,14 +51,10 @@ describe('2.1 dispatching Worker config updates', () => {
     configEvent,
     github,
     headSha,
-    replyGitHub,
+    replyEndpoint,
     webhook,
   }) => {
-    github.mockImplementation(url =>
-      new Request(url).url.includes('/check-suites/')
-        ? Promise.resolve(Response.json({ before: '0'.repeat(headSha.length) }))
-        : replyGitHub(url),
-    );
+    replyEndpoint('/check-suites/', { before: '0'.repeat(headSha.length) });
 
     await expect(webhook.send('workflow_run', configEvent)).resolves.toMatchObject({ status: 204 });
     expect(github.mock.calls.filter(([url]) => new Request(url).url.includes('/git/trees/'))).toHaveLength(1);
@@ -93,12 +85,8 @@ describe('2.2 restricting deployment authority', () => {
     expect(github.mock.calls.some(([url]) => new Request(url).url.endsWith('/dispatches'))).toBe(false);
   });
 
-  test('2.2.3 refuses an ambiguous environment selector', async ({ configEvent, github, replyGitHub, webhook }) => {
-    github.mockImplementation(url =>
-      new Request(url).url.endsWith('/variables/CONFIG_REPOSITORY')
-        ? Promise.resolve(Response.json({ value: 'zyplux/zyp-config-prod' }))
-        : replyGitHub(url),
-    );
+  test('2.2.3 refuses an ambiguous environment selector', async ({ configEvent, github, replyEndpoint, webhook }) => {
+    replyEndpoint('/variables/CONFIG_REPOSITORY', { value: 'zyplux/zyp-config-prod' });
 
     await expect(webhook.send('workflow_run', configEvent)).resolves.toMatchObject({ status: 502 });
     expect(github.mock.calls.some(([url]) => new Request(url).url.endsWith('/dispatches'))).toBe(false);
@@ -108,14 +96,10 @@ describe('2.2 restricting deployment authority', () => {
     configEvent,
     github,
     headSha,
-    replyGitHub,
+    replyEndpoint,
     webhook,
   }) => {
-    github.mockImplementation(url =>
-      new Request(url).url.includes('/git/ref/')
-        ? Promise.resolve(Response.json({ object: { sha: '2'.repeat(headSha.length) } }))
-        : replyGitHub(url),
-    );
+    replyEndpoint('/git/ref/', { object: { sha: '2'.repeat(headSha.length) } });
 
     await expect(webhook.send('workflow_run', configEvent)).resolves.toMatchObject({ status: 204 });
     expect(github.mock.calls.some(([url]) => new Request(url).url.endsWith('/dispatches'))).toBe(false);
