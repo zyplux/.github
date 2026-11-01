@@ -103,4 +103,21 @@ describe('2.2 restricting deployment authority', () => {
     await expect(webhook.send('workflow_run', configEvent)).resolves.toMatchObject({ status: 502 });
     expect(github.mock.calls.some(([url]) => new Request(url).url.endsWith('/dispatches'))).toBe(false);
   });
+
+  test('2.2.4 skips completed CI for a superseded commit', async ({
+    configEvent,
+    github,
+    headSha,
+    replyGitHub,
+    webhook,
+  }) => {
+    github.mockImplementation(url =>
+      new Request(url).url.includes('/git/ref/')
+        ? Promise.resolve(Response.json({ object: { sha: '2'.repeat(headSha.length) } }))
+        : replyGitHub(url),
+    );
+
+    await expect(webhook.send('workflow_run', configEvent)).resolves.toMatchObject({ status: 204 });
+    expect(github.mock.calls.some(([url]) => new Request(url).url.endsWith('/dispatches'))).toBe(false);
+  });
 });

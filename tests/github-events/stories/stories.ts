@@ -19,40 +19,43 @@ const envelope = {
 
 type GitHubRequest = Parameters<typeof fetch>[0];
 
-const replyGitHub = (url: GitHubRequest) => {
-  const endpoint = new Request(url).url;
-  if (endpoint.endsWith('/access_tokens')) {
-    return Promise.resolve(Response.json({ expires_at: '2099-01-01T00:00:00Z', token: 'installation-token' }));
-  }
+const replyConfig = (endpoint: string) => {
   if (endpoint.endsWith('/variables/CONFIG_REPOSITORY')) {
-    return Promise.resolve(
-      Response.json({ value: `zyplux/zyp-config-${endpoint.includes('/production/') ? 'prod' : 'staging'}` }),
-    );
+    return Response.json({ value: `zyplux/zyp-config-${endpoint.includes('/production/') ? 'prod' : 'staging'}` });
   }
   if (endpoint.endsWith('/variables/CONFIG_BRANCH')) {
-    return Promise.resolve(Response.json({ value: 'main' }));
+    return Response.json({ value: 'main' });
+  }
+  if (endpoint.includes('/git/ref/')) {
+    return Response.json({ object: { sha: HEAD_SHA } });
   }
   if (endpoint.includes('/check-suites/')) {
-    return Promise.resolve(Response.json({ before: '1'.repeat(HEAD_SHA.length) }));
+    return Response.json({ before: '1'.repeat(HEAD_SHA.length) });
   }
-  if (endpoint.includes('/git/trees/')) {
-    const before = '1'.repeat(HEAD_SHA.length);
-    const sha = (endpoint.endsWith(before) ? 'a' : 'b').repeat(HEAD_SHA.length);
-    return Promise.resolve(Response.json({ tree: [{ path: 'workers', sha, type: 'tree' }] }));
-  }
+  if (!endpoint.includes('/git/trees/')) return;
+  const before = '1'.repeat(HEAD_SHA.length);
+  const sha = (endpoint.endsWith(before) ? 'a' : 'b').repeat(HEAD_SHA.length);
+  return Response.json({ tree: [{ path: 'workers', sha, type: 'tree' }] });
+};
+
+const replyReview = (endpoint: string) => {
   if (endpoint.endsWith('/pulls')) {
-    return Promise.resolve(
-      Response.json([
-        { head: { sha: HEAD_SHA }, number: 62, state: 'open' },
-        { head: { sha: HEAD_SHA }, number: 63, state: 'closed' },
-        { head: { sha: '0'.repeat(HEAD_SHA.length) }, number: 64, state: 'open' },
-      ]),
-    );
+    return Response.json([
+      { head: { sha: HEAD_SHA }, number: 62, state: 'open' },
+      { head: { sha: HEAD_SHA }, number: 63, state: 'closed' },
+      { head: { sha: '0'.repeat(HEAD_SHA.length) }, number: 64, state: 'open' },
+    ]);
   }
-  if (endpoint.endsWith('/pulls/62')) {
-    return Promise.resolve(Response.json({ head: { sha: HEAD_SHA } }));
-  }
-  return Promise.resolve(new Response(undefined, { status: 204 }));
+  return endpoint.endsWith('/pulls/62') ? Response.json({ head: { sha: HEAD_SHA } }) : undefined;
+};
+
+const replyGitHub = (url: GitHubRequest) => {
+  const endpoint = new Request(url).url;
+  return Promise.resolve(
+    endpoint.endsWith('/access_tokens')
+      ? Response.json({ expires_at: '2099-01-01T00:00:00Z', token: 'installation-token' })
+      : (replyConfig(endpoint) ?? replyReview(endpoint) ?? new Response(undefined, { status: 204 })),
+  );
 };
 
 export const test = base

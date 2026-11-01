@@ -15,3 +15,5 @@
 ### 2.2.2 ignores repositories absent from the environment selectors
 
 ### 2.2.3 refuses an ambiguous environment selector
+
+### 2.2.4 skips completed CI for a superseded commit

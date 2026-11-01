@@ -6,6 +6,7 @@ import { CommitSchema, ConfigEventSchema } from './contracts.ts';
 
 const DEPLOYMENT_REPOSITORY = { owner: 'zyplux', repo: 'zyp-vps' };
 const VariableSchema = z.object({ value: z.string().min(1) });
+const GitRefSchema = z.object({ object: z.object({ sha: CommitSchema }) });
 const CheckSuiteSchema = z.object({ before: CommitSchema.nullable() });
 const TreeSchema = z.object({
   tree: z.array(z.object({ path: z.string(), sha: CommitSchema, type: z.string() })),
@@ -40,6 +41,12 @@ export const forwardConfig = async (body: Record<string, unknown>, github: Octok
   const [target] = matches;
   if (target === undefined) return;
   if (matches.length !== 1) throw new Error('Config repository matches multiple deployment environments');
+
+  const branch = await github.request('GET /repos/{owner}/{repo}/git/ref/{ref}', {
+    ...source,
+    ref: `heads/${target.branch}`,
+  });
+  if (GitRefSchema.parse(branch.data).object.sha !== run.head_sha) return;
 
   const { data } = await github.request('GET /repos/{owner}/{repo}/check-suites/{check_suite_id}', {
     ...source,
