@@ -15,7 +15,7 @@
 | [profile/README.md](profile/README.md)                | Public org profile rendered at [github.com/zyplux](https://github.com/zyplux) |
 | [org_gate_base](.github/workflows/org_gate_base.yml)  | Reusable workflow gating merges on clean reviews from participating bots                  |
 | [bot-review-gate](apps/bot-review-gate)       | The app behind org_gate_base — records the review verdict as a commit status   |
-| [review-events](apps/review-events) | Cloudflare Worker forwarding GitHub review events to the gate |
+| [github-events](apps/github-events) | Cloudflare Worker dispatching review gates and Worker config updates |
 | [apply-org-rulesets](apps/apply-org-rulesets)         | Applies the org rulesets across every repo                                    |
 | [rulesets](rulesets)                                  | Organization-wide branch protections and bot review requirements            |
 
@@ -25,9 +25,9 @@ The shared [bot review gate](apps/bot-review-gate/README.md) requires at least o
 
 Every repository covered by the `copilot-review` ruleset must call the workflow and enable at least one reviewer. The ruleset requests Copilot automatically; configure Codex automatic reviews in its GitHub integration.
 
-Copy the [org_gate.yml caller](.github/workflows/org_gate.yml) into the consuming repository's `.github/workflows/` directory. The [review event Worker](apps/review-events) dispatches it when reviews change, including when threads are resolved or reopened. Each gate run evaluates the live head once and exits; later bot activity triggers another check. The caller's manual **Run workflow** button accepts a PR number for an operator refresh.
+Copy the [org_gate.yml caller](.github/workflows/org_gate.yml) into the consuming repository's `.github/workflows/` directory. The [GitHub event Worker](apps/github-events) dispatches it when reviews change, including when threads are resolved or reopened. Each gate run evaluates the live head once and exits; later bot activity triggers another check. The caller's manual **Run workflow** button accepts a PR number for an operator refresh.
 
-Worker changes merged into `main` deploy automatically through [deploy_review_events](.github/workflows/deploy_review_events.yml), using the repository's `production` environment.
+Worker changes merged into `main` deploy automatically through [deploy_github_events](.github/workflows/deploy_github_events.yml), using the repository's `production` environment.
 
 ## Organization rulesets
 

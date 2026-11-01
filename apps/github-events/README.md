@@ -1,40 +1,47 @@
-# Review events
+# GitHub events
 
-This Cloudflare Worker authenticates GitHub App webhooks and dispatches each affected repository's `org_gate.yml`. The Python [review gate](../bot-review-gate) evaluates the current PR head once and publishes `bot-review-complete`. Review verdicts stay in that gate; the Worker selects notifications and forwards PR numbers and head SHAs.
+This Cloudflare Worker authenticates GitHub App webhooks and starts trusted GitHub workflows. Its review handler refreshes the Python [review gate](../bot-review-gate); its config handler starts Worker updates in `zyp-vps`. GitHub Actions performs deployment using the selected environment's credentials.
 
-PR opening, pushes and readiness changes start checks. Bot summary edits, reviews, PR-comment edits/deletions, thread resolution/reopening and Copilot check/workflow activity refresh them. Unrelated CI workflows and ordinary new comments are ignored. Repository exclusions come from the [review ruleset](../../rulesets/copilot-review.json).
+## Review gates
+
+PR opening, pushes and readiness changes start checks. Bot summary edits, reviews, PR-comment edits/deletions, thread resolution/reopening and Copilot check/workflow activity refresh them. The handler forwards PR numbers and head SHAs to `org_gate.yml`; that workflow owns review policy. Repository exclusions come from the [review ruleset](../../rulesets/copilot-review.json).
+
+## Worker config updates
+
+Successful push runs of `.github/workflows/ci.yml` can trigger Worker updates. The handler reads `CONFIG_REPOSITORY` and `CONFIG_BRANCH` from `zyp-vps`'s production and staging GitHub Environments and matches the source repository and branch. It compares the `workers/` Git tree before and after the push, covering every commit in that push.
+
+A changed tree starts `zyp-vps`'s `deploy_application.yml` on `main` with operation `workers`, the matching environment and the validated config commit. Other config changes start no deployment. Config repositories need no dispatch credential. The handler fixes the target workflow and operation; webhook contents cannot select VPS maintenance operations.
 
 ## Deployment
 
-The [deployment workflow](../../.github/workflows/deploy_review_events.yml) deploys Worker changes merged into `main` and checks `/health`. Its manual **Run workflow** button redeploys `main`. Pull requests run the repository CI; deployment uses the locked Wrangler installation without rerunning CI. The custom domain in [wrangler.jsonc](wrangler.jsonc) provides `https://github-hooks.zyplux.ai/review-gate`; Cloudflare manages its DNS record and HTTPS certificate.
-
-Configure these inputs under this repository's **Settings → Environments → production**:
+The [deployment workflow](../../.github/workflows/deploy_github_events.yml) deploys Worker changes merged into `main` and checks `/health`. Its manual **Run workflow** button redeploys `main`. Pull requests run CI. The [custom domain](wrangler.jsonc) provides `https://github-hooks.zyplux.ai/events`; Cloudflare manages DNS and HTTPS.
 
 | Name | Storage | Purpose |
 | --- | --- | --- |
-| `CLOUDFLARE_ACCOUNT_ID` | Variable | Cloudflare account hosting the Worker. |
-| `CLOUDFLARE_API_TOKEN` | Secret | Account-scoped Worker deployment permission. |
-| `REVIEW_APP_ID` | Variable | App ID from the GitHub App settings. |
-| `REVIEW_APP_PRIVATE_KEY` | Secret | App private key; Octokit uses it to obtain short-lived installation tokens. |
-| `REVIEW_WEBHOOK_SECRET` | Secret | Shared secret used to authenticate GitHub deliveries. |
+| `CLOUDFLARE_ACCOUNT_ID` | `.github` production environment variable | Cloudflare account hosting the Worker. |
+| `CLOUDFLARE_API_TOKEN` | `.github` production environment secret | Account-scoped Worker deployment permission. |
+| `EVENTS_APP_ID` | Organization variable available to `.github` | App ID from GitHub App settings. |
+| `EVENTS_APP_CLIENT_ID` | Organization variable available to `zyp-vps` | Client ID for creating read-only config-access tokens. |
+| `EVENTS_APP_PRIVATE_KEY` | Organization secret restricted to `.github` and `zyp-vps` | Private key for short-lived installation tokens. |
+| `EVENTS_WEBHOOK_SECRET` | `.github` production environment secret | Shared secret authenticating GitHub deliveries. |
 
-The workflow uploads the three `REVIEW_*` bindings as Worker secrets. Keep their authoritative values in GitHub; subsequent deployments refresh the bindings automatically. Worker settings and logs/traces are configured in [wrangler.jsonc](wrangler.jsonc).
+The workflow uploads `EVENTS_APP_ID`, `EVENTS_APP_PRIVATE_KEY` and `EVENTS_WEBHOOK_SECRET` as Worker secret bindings. GitHub remains their authoritative store. Logs and traces are enabled in [wrangler.jsonc](wrangler.jsonc).
 
 ## GitHub App setup
 
-Use [github-app.json](github-app.json) as the registration contract in **[zyplux → Settings → Developer settings → GitHub Apps](https://github.com/organizations/zyplux/settings/apps) → New GitHub App**:
+Use one App for these event handlers. Its [registration contract](github-app.json) defines the name, homepage, webhook URL, permissions and subscriptions. In **[zyplux → Settings → Developer settings → GitHub Apps](https://github.com/organizations/zyplux/settings/apps)**:
 
-1. Set the app name, homepage and webhook URL from the contract. Generate a random webhook secret and save the same value as `REVIEW_WEBHOOK_SECRET` in the production environment above.
-2. Grant the contract's repository permissions and subscribe to its events. **Actions: Read and write** allows workflow dispatch; **Checks**, **Issues** and **Pull requests: Read-only** allow the corresponding notifications.
-3. Select **Only on this account**, create the app and save its **App ID** as `REVIEW_APP_ID`.
-4. Under **Credentials → Key pairs → New key**, generate a private key and save its complete PEM contents as `REVIEW_APP_PRIVATE_KEY`.
-5. Run **deploy_review_events** from `main`; check that `/health` returns `{"status":"ok"}`.
-6. In the app settings, select **Install App → zyplux → All repositories**. Excluded repositories are ignored according to the review ruleset.
+1. Set the name, homepage and webhook URL from the contract. Save a random webhook secret as `EVENTS_WEBHOOK_SECRET` in the production environment above and in the App settings.
+2. Grant the contract's repository permissions: **Actions: Read and write** for workflow events and dispatch; **Checks**, **Issues** and **Pull requests: Read-only** for review notifications; **Contents: Read-only** for config trees and private config reads; **Environments: Read-only** for deployment selectors.
+3. Save **App ID** as `EVENTS_APP_ID` and **Client ID** as `EVENTS_APP_CLIENT_ID` with the repository access listed above.
+4. Under **Credentials → Key pairs → New key**, generate a private key and save its complete PEM contents as the organization secret `EVENTS_APP_PRIVATE_KEY`.
+5. Install the App on the organization's repositories and approve its requested permissions. The review handler applies the ruleset exclusions; the config handler accepts only repositories and branches selected by `zyp-vps`'s GitHub Environments.
+6. Run **deploy_github_events** from `main`; check that `/health` returns `{"status":"ok"}`.
 
-GitHub's [registration guide](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app) covers the form. No OAuth callback or user authorization is needed: the Worker acts as the installation.
+GitHub's [registration guide](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app) covers the settings. The Worker acts as the installation; no user OAuth callback is required.
 
 ## Verification and diagnosis
 
-Open **GitHub App settings → Advanced → Recent deliveries**. A thread resolved or reopened on an open PR should receive HTTP 204 and start `org_gate` in that repository. Check the PR's current-head `bot-review-complete` status after the run. If a delivery fails, inspect the Worker logs using its delivery ID and use **Redeliver** after correcting the cause; GitHub does not automatically retry failed webhooks.
+Open **GitHub App settings → Advanced → Recent deliveries**. Review events should receive HTTP 204 and start `org_gate` for the affected PR. A successful config CI run with changed `workers/` should start the matching environment's Worker update. Inspect structured Worker logs using the delivery ID. GitHub does not automatically retry failed webhooks; use **Redeliver** after correcting the cause.
 
-For local verification, run `pnpm test`, `uv run pytest tests/bot-review-gate`, and `pnpm --filter @zyplux/review-events exec wrangler deploy --dry-run`. Regenerate binding types with `pnpm --filter @zyplux/review-events run types` after changing the Worker configuration.
+Run `pnpm test` and `pnpm --filter @zyplux/github-events exec wrangler deploy --dry-run` locally. Regenerate binding types with `pnpm --filter @zyplux/github-events run types` after changing the Worker configuration.

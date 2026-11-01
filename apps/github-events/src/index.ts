@@ -5,6 +5,7 @@ import ruleset from '@rulesets/copilot-review.json' with { type: 'json' };
 import { createPrivateKey } from 'node:crypto';
 import * as z from 'zod';
 
+import { forwardConfig } from './config-deployments.ts';
 import { CommitPullsSchema, JsonObjectSchema, PullHeadSchema, ReviewEventSchema } from './contracts.ts';
 
 const GITHUB_TIMEOUT_MS = 8000;
@@ -46,9 +47,9 @@ const selectPulls = async ({ body, event }: z.infer<typeof ReviewEventSchema>, g
   }
 };
 
-const forwardReview = async (
+const forwardEvent = async (
   request: Request,
-  { REVIEW_APP_ID: appId, REVIEW_APP_PRIVATE_KEY: privateKey, REVIEW_WEBHOOK_SECRET: webhookSecret }: Env,
+  { EVENTS_APP_ID: appId, EVENTS_APP_PRIVATE_KEY: privateKey, EVENTS_WEBHOOK_SECRET: webhookSecret }: Env,
 ) => {
   const payload = await request.text();
   const signature = request.headers.get('x-hub-signature-256');
@@ -59,10 +60,11 @@ const forwardReview = async (
   if (event === 'ping' || event === 'installation' || event === 'installation_repositories') {
     return new Response(undefined, { status: 204 });
   }
-  const parsed = ReviewEventSchema.safeParse({ body: JsonObjectSchema.parse(JSON.parse(payload)), event });
-  if (!parsed.success) return new Response('Invalid review event', { status: 400 });
+  const body = JsonObjectSchema.parse(JSON.parse(payload));
+  const parsed = ReviewEventSchema.safeParse({ body, event });
+  if (!parsed.success) return new Response('Invalid GitHub event', { status: 400 });
   const { installation, repository } = parsed.data.body;
-  if (repository.owner.login !== 'zyplux' || ruleset.conditions.repository_name.exclude.includes(repository.name)) {
+  if (repository.owner.login !== 'zyplux') {
     return new Response(undefined, { status: 204 });
   }
   const github = new Octokit({
@@ -74,6 +76,10 @@ const forwardReview = async (
     authStrategy: createAppAuth,
     request: { signal: AbortSignal.timeout(GITHUB_TIMEOUT_MS) },
   });
+  if (event === 'workflow_run') await forwardConfig(body, github);
+  if (ruleset.conditions.repository_name.exclude.includes(repository.name)) {
+    return new Response(undefined, { status: 204 });
+  }
   const pulls = await selectPulls(parsed.data, github);
   for (const pull of pulls) {
     let sha = pull.head?.sha;
@@ -108,9 +114,11 @@ const worker = {
   fetch: async (request: Request, env) => {
     const pathname = new URL(request.url).pathname;
     if (pathname === '/health' && request.method === 'GET') return Response.json({ status: 'ok' });
-    if (pathname !== '/review-gate' || request.method !== 'POST') return new Response(undefined, { status: 404 });
+    if (!['/events', '/review-gate'].includes(pathname) || request.method !== 'POST') {
+      return new Response(undefined, { status: 404 });
+    }
     try {
-      return await forwardReview(request, env);
+      return await forwardEvent(request, env);
     } catch (error) {
       console.error(
         JSON.stringify({
@@ -118,7 +126,7 @@ const worker = {
           error: error instanceof Error ? error.message : String(error),
         }),
       );
-      return new Response('Review dispatch failed', { status: 502 });
+      return new Response('GitHub event dispatch failed', { status: 502 });
     }
   },
 } satisfies ExportedHandler<Env>;

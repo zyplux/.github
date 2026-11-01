@@ -4,8 +4,8 @@
     { "path": "./tsconfig.tooling.json" },
     { "path": "./scripts" },
     { "path": "./apps/apply-org-rulesets" },
-    { "path": "./apps/review-events" },
+    { "path": "./apps/github-events" },
     { "path": "./tests/apply-org-rulesets" },
-    { "path": "./tests/review-events" }
+    { "path": "./tests/github-events" }
   ]
 }

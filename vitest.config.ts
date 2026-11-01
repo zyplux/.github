@@ -14,7 +14,7 @@ export default defineConfig({
         statements: 90,
       },
     },
-    projects: ['tests/apply-org-rulesets', 'tests/review-events'],
+    projects: ['tests/apply-org-rulesets', 'tests/github-events'],
     restoreMocks: true,
     unstubEnvs: true,
     unstubGlobals: true,

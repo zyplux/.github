@@ -1,15 +1,17 @@
 {
-  "name": "zyplux-review-events",
-  "description": "Refresh bot review gates when pull requests, reviews and review threads change.",
+  "name": "zyplux-github-events",
+  "description": "Start review gates and Worker config deployments from GitHub events.",
   "url": "https://github.com/zyplux/.github",
   "public": false,
   "hook_attributes": {
-    "url": "https://github-hooks.zyplux.ai/review-gate",
+    "url": "https://github-hooks.zyplux.ai/events",
     "active": true
   },
   "default_permissions": {
     "actions": "write",
     "checks": "read",
+    "contents": "read",
+    "environments": "read",
     "issues": "read",
     "pull_requests": "read"
   },
