@@ -70,7 +70,7 @@ export const forwardConfig = async (body: Record<string, unknown>, github: Octok
       config_ref: run.head_sha,
       config_repository: target.repository,
       environment: target.environment,
-      operation: 'workers',
+      operation: 'redeploy-workers',
       preflight: 'false',
     },
     ref: 'main',
