@@ -70,11 +70,11 @@ export const forwardConfig = async (body: Record<string, unknown>, github: Octok
       config_ref: run.head_sha,
       config_repository: target.repository,
       environment: target.environment,
-      operation: 'redeploy-workers',
+      operation: 'publish-worker-config',
       preflight: 'false',
     },
     ref: 'main',
     workflow_id: 'deploy_application.yml',
   });
-  console.info(JSON.stringify({ action: 'deploy-worker-config', commit: run.head_sha, ...target }));
+  console.info(JSON.stringify({ action: 'publish-worker-config', commit: run.head_sha, ...target }));
 };

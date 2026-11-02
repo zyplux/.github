@@ -19,7 +19,7 @@ describe('2.1 dispatching Worker config updates', () => {
                 config_ref: headSha,
                 config_repository: `zyplux/${repository.name}`,
                 environment: suffix === 'prod' ? 'production' : 'staging',
-                operation: 'redeploy-workers',
+                operation: 'publish-worker-config',
                 preflight: 'false',
               },
               ref: 'main',

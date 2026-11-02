@@ -1,6 +1,6 @@
 # zyplux
 
-This Cloudflare Worker authenticates GitHub App webhooks and starts trusted GitHub workflows. Its review handler refreshes the Python [review gate](../bot-review-gate); its config handler starts Worker updates in `zyp-vps`. GitHub Actions performs deployment using the selected environment's credentials.
+This Cloudflare Worker authenticates GitHub App webhooks and starts trusted GitHub workflows. Its review handler refreshes the Python [review gate](../bot-review-gate); its config handler requests Worker config publication in `zyp-vps`. GitHub Actions publishes config to the selected environment's KV namespace.
 
 ## Review gates
 
@@ -10,7 +10,7 @@ PR opening, pushes and readiness changes start checks. Bot summary edits, review
 
 Successful push runs of `.github/workflows/ci.yml` can trigger Worker updates. The handler reads `CONFIG_REPOSITORY` and `CONFIG_BRANCH` from `zyp-vps`'s production and staging GitHub Environments and matches the source repository and branch. It skips superseded commits and compares the `workers/` Git tree before and after the push, covering every commit in that push.
 
-A changed tree starts `zyp-vps`'s `deploy_application.yml` on `main` with operation `redeploy-workers`, the matching environment and the validated config commit. Other config changes start no deployment. Config repositories need no dispatch credential. The handler fixes the target workflow and operation; webhook contents cannot select VPS maintenance operations.
+A changed tree starts `zyp-vps`'s `deploy_application.yml` on `main` with operation `publish-worker-config`, the matching environment and the validated config commit. Other config changes start no publication. Config repositories need no dispatch credential. The handler fixes the target workflow and operation; webhook contents cannot select VPS maintenance operations.
 
 ## Deployment
 
