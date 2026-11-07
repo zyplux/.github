@@ -1,5 +1,0 @@
-{
-  "name": "@zyplux/publish-worker-config",
-  "private": true,
-  "main": "publish-worker-config.mjs"
-}
