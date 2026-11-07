@@ -70,7 +70,7 @@ const forwardEvent = async (
     auth: {
       appId,
       installationId: installation.id,
-      privateKey: createPrivateKey(privateKey).export({ format: 'pem', type: 'pkcs8' }),
+      privateKey: createPrivateKey(await privateKey.get()).export({ format: 'pem', type: 'pkcs8' }),
     },
     authStrategy: createAppAuth,
     request: { signal: AbortSignal.timeout(GITHUB_TIMEOUT_MS) },

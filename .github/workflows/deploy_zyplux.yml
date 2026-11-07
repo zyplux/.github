@@ -39,11 +39,9 @@ jobs:
           workingDirectory: apps/zyplux
           secrets: |
             ZYPLUX_APP_ID
-            ZYPLUX_APP_PRIVATE_KEY
             ZYPLUX_WEBHOOK_SECRET
         env:
           ZYPLUX_APP_ID: ${{ vars.ZYPLUX_APP_ID }}
-          ZYPLUX_APP_PRIVATE_KEY: ${{ secrets.ZYPLUX_APP_PRIVATE_KEY }}
           ZYPLUX_WEBHOOK_SECRET: ${{ secrets.ZYPLUX_WEBHOOK_SECRET }}
       - name: Verify Worker health
         env:

@@ -8,8 +8,15 @@
   "routes": [{ "pattern": "github-hooks.zyplux.ai", "custom_domain": true }],
   "preview_urls": false,
   "secrets": {
-    "required": ["ZYPLUX_APP_ID", "ZYPLUX_APP_PRIVATE_KEY", "ZYPLUX_WEBHOOK_SECRET"],
+    "required": ["ZYPLUX_APP_ID", "ZYPLUX_WEBHOOK_SECRET"],
   },
+  "secrets_store_secrets": [
+    {
+      "binding": "ZYPLUX_APP_PRIVATE_KEY",
+      "store_id": "e3f1fcd345d44159960455c2e2c8d09c",
+      "secret_name": "ZYPLUX_APP_PRIVATE_KEY",
+    },
+  ],
   "observability": {
     "enabled": true,
     "traces": { "enabled": true },

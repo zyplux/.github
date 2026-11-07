@@ -10,7 +10,11 @@ const { privateKey } = generateKeyPairSync('rsa', {
   publicKeyEncoding: { format: 'pem', type: 'spki' },
 });
 
-const env = { ZYPLUX_APP_ID: '123', ZYPLUX_APP_PRIVATE_KEY: privateKey, ZYPLUX_WEBHOOK_SECRET: 'webhook-secret' };
+const env = {
+  ZYPLUX_APP_ID: '123',
+  ZYPLUX_APP_PRIVATE_KEY: { get: () => Promise.resolve(privateKey) },
+  ZYPLUX_WEBHOOK_SECRET: 'webhook-secret',
+};
 const envelope = {
   action: 'created',
   installation: { id: 42 },
