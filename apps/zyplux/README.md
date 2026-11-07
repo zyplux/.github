@@ -14,8 +14,8 @@ The [deployment workflow](../../.github/workflows/deploy_zyplux.yml) deploys Wor
 | --- | --- | --- |
 | `CLOUDFLARE_ACCOUNT_ID` | Organization variable available to all repositories | Cloudflare account hosting the Worker. |
 | `CLOUDFLARE_API_TOKEN` | Organization secret available to all repositories | Account-scoped Worker deployment permission. |
-| `ZYPLUX_APP_ID` | Organization variable available to `.github` | App ID from GitHub App settings. |
-| `ZYPLUX_APP_PRIVATE_KEY` | Organization secret available to `.github` | Private key for short-lived installation tokens. |
+| `ZYPLUX_APP_ID` | Organization variable available to all repositories | App ID from GitHub App settings. |
+| `ZYPLUX_APP_PRIVATE_KEY` | Organization secret available to all repositories | Private key for short-lived installation tokens. |
 | `ZYPLUX_WEBHOOK_SECRET` | `.github` production environment secret | Shared secret authenticating GitHub deliveries. |
 
 The workflow uploads `ZYPLUX_APP_ID`, `ZYPLUX_APP_PRIVATE_KEY` and `ZYPLUX_WEBHOOK_SECRET` as Worker secret bindings. GitHub remains their authoritative store. Logs and traces are enabled in [wrangler.jsonc](wrangler.jsonc).
@@ -27,7 +27,7 @@ The [registration contract](github-app.json) defines the App name, homepage, web
 1. Set the name, homepage and webhook URL from the contract. Save a random webhook secret as `ZYPLUX_WEBHOOK_SECRET` in the production environment above and in the App settings.
 2. Grant the repository permissions in the registration contract.
 3. Save **App ID** as `ZYPLUX_APP_ID` with the repository access listed above.
-4. Under **Credentials → Key pairs → New key**, generate a private key and save its complete PEM contents as the organization secret `ZYPLUX_APP_PRIVATE_KEY`.
+4. Under **Credentials → Key pairs → New key**, generate a private key and save its complete PEM contents as the organization secret `ZYPLUX_APP_PRIVATE_KEY` with **All repositories** access.
 5. Install the App on the organization's repositories and approve its requested permissions. The review handler applies the ruleset exclusions.
 6. Run **deploy_zyplux** from `main`; check that `/health` returns `{"status":"ok"}`.
 
