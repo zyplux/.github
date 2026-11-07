@@ -10,12 +10,12 @@ const { checkConfigCompatibility, readWorkerConfig } = await import(process.argv
 const snapshot = { ...(await readWorkerConfig('.')), commit: GITHUB_SHA };
 const deployment = `zyploop-${DEPLOYMENT_ENVIRONMENT}`;
 
-const request = async (path, { allowMissing = false, body, method = 'GET' } = {}) => {
+const request = async (path, { allowMissing = false, body, contentType = 'application/json', method = 'GET' } = {}) => {
   const response = await globalThis.fetch(
     `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/${path}`,
     {
       body: JSON.stringify(body),
-      headers: { Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`, 'Content-Type': contentType },
       method,
       signal: globalThis.AbortSignal.timeout(30_000),
     },
@@ -106,7 +106,7 @@ if (published?.revision === snapshot.revision) {
     });
     if (!response.success) throw new Error('Cloudflare refused the Email Worker schedule');
   }
-  const response = await request(key, { body: snapshot, method: 'PUT' });
+  const response = await request(key, { body: snapshot, contentType: 'application/octet-stream', method: 'PUT' });
   if (!response.success) throw new Error('Cloudflare refused Worker config publication');
   globalThis.console.log(
     `Published Worker config ${snapshot.revision} from ${snapshot.commit} to ${deployment}-config`,
