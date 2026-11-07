@@ -13,11 +13,11 @@ catalog:
   '@octokit/webhooks-methods': ^6.0.0
   '@types/node': ^26.6.6
   '@vitest/coverage-istanbul': ^5.0.5
-  '@zyplux/cz': ^0.16.0
-  '@zyplux/eslint-config': ^0.12.3
+  '@zyplux/cz': ^0.16.2
+  '@zyplux/eslint-config': ^0.12.4
   '@zyplux/tsconfig': ^0.3.3
-  '@zyplux/util': ^0.9.3
-  eslint: ^10.13.0
+  '@zyplux/util': ^0.9.4
+  eslint: ^10.14.0
   knip: ^6.44.0
   prettier: ^3.9.10
   typescript: ^6.0.3

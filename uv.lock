@@ -772,7 +772,7 @@ wheels = [
 
 [[package]]
 name = "zyplux-airlock"
-version = "2.2.0"
+version = "2.2.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docker" },
@@ -785,14 +785,14 @@ dependencies = [
     { name = "tomlkit" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/d2/c15ac61276357553a5aa162f57e2ed759ea4aa55b79f4fe127f27b476a44/zyplux_airlock-2.2.0.tar.gz", hash = "sha256:0ab2e1f50210df05c249c5856177b980f7a6130836553c573506f1529f67d87f", size = 28555, upload-time = "2026-10-28T18:34:32.536Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/36/8b/0081147c300ac7b96e96c2efded2a06219216570e5a1bc654c0b9a7584f6/zyplux_airlock-2.2.2.tar.gz", hash = "sha256:f92d779af2d1fa45ed8f90f1b016449334aa6d838e4ee8d1638d98ffb856735d", size = 30002, upload-time = "2026-11-04T00:13:37.172Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/03/50/a43bd579dab07cabd1ba81bb78fc959dfc44c466494b463f6e521e04c00c/zyplux_airlock-2.2.0-py3-none-any.whl", hash = "sha256:63b9b8b35f11a04d34b1f76122bcedf1b439ed15e5bdb4e0619c8346ad66b2da", size = 36147, upload-time = "2026-10-28T18:34:31.407Z" },
+    { url = "https://files.pythonhosted.org/packages/51/7d/151695ca186853dce478a41296bca345526a15e2687d090288c28f6ac6b6/zyplux_airlock-2.2.2-py3-none-any.whl", hash = "sha256:28288a4609df9bc7d814389e1500ba356602eceffc52a5e5d7869c8dbd810fcc", size = 37660, upload-time = "2026-11-04T00:13:35.982Z" },
 ]
 
 [[package]]
 name = "zyplux-cerberus"
-version = "0.27.3"
+version = "0.27.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "networkx" },
@@ -807,9 +807,9 @@ dependencies = [
     { name = "typer" },
     { name = "zyplux-airlock" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/00/3a/0e91d2453a49250844d605069b352823b5f5c4df85bbd03a7752c2419b6a/zyplux_cerberus-0.27.3.tar.gz", hash = "sha256:e05de8197a19d385664e1299cbd1c7bc202bca56da1db1f5ef71f80e425078ec", size = 79304, upload-time = "2026-11-02T03:32:46.105Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9c/e8/851188cad1180ffc594b8655c18b877957faf0ded2e09aeb0f1b2da65c94/zyplux_cerberus-0.27.5.tar.gz", hash = "sha256:439a8894157c5e6bf8ad8c8848e2220e6561610396e991afd09021824157f49d", size = 79381, upload-time = "2026-11-04T00:14:41.245Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/84/23/82d8d09f6db0cc8872d6cd3859ba5686cf6846a477af16cdf461d78b1d98/zyplux_cerberus-0.27.3-py3-none-any.whl", hash = "sha256:bfe45abb3bfc23a6ff19a1d8e41c4e660fda34b7530d72c8f9d95fd71ff76a0a", size = 109987, upload-time = "2026-11-02T03:32:45.094Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/24/5d233e646da84b1c67095d5b2fd392fde022f6375edd3a6e2ea1473a2bfe/zyplux_cerberus-0.27.5-py3-none-any.whl", hash = "sha256:2c5d8d5e855be542eb15e2fbf721acba3fc5e2160ef9900b0aa539d57a0adb4a", size = 110091, upload-time = "2026-11-04T00:14:40.196Z" },
 ]
 
 [[package]]

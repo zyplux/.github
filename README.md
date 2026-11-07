@@ -15,7 +15,7 @@
 | [profile/README.md](profile/README.md)                | Public org profile rendered at [github.com/zyplux](https://github.com/zyplux) |
 | [org_gate_base](.github/workflows/org_gate_base.yml)  | Reusable workflow gating merges on clean reviews from participating bots                  |
 | [bot-review-gate](apps/bot-review-gate)       | The app behind org_gate_base — records the review verdict as a commit status   |
-| [zyplux](apps/zyplux) | Cloudflare Worker dispatching review gates and Worker config updates |
+| [zyplux](apps/zyplux) | Cloudflare Worker dispatching review gates |
 | [apply-org-rulesets](apps/apply-org-rulesets)         | Applies the org rulesets across every repo                                    |
 | [rulesets](rulesets)                                  | Organization-wide branch protections and bot review requirements            |
 

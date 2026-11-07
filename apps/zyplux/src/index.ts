@@ -5,7 +5,6 @@ import ruleset from '@rulesets/copilot-review.json' with { type: 'json' };
 import { createPrivateKey } from 'node:crypto';
 import * as z from 'zod';
 
-import { forwardConfig } from './config-deployments.ts';
 import { CommitPullsSchema, JsonObjectSchema, PullHeadSchema, ReviewEventSchema } from './contracts.ts';
 
 const GITHUB_TIMEOUT_MS = 8000;
@@ -64,22 +63,18 @@ const forwardEvent = async (
   const parsed = ReviewEventSchema.safeParse({ body, event });
   if (!parsed.success) return new Response('Invalid GitHub event', { status: 400 });
   const { installation, repository } = parsed.data.body;
-  if (repository.owner.login !== 'zyplux') {
+  if (repository.owner.login !== 'zyplux' || ruleset.conditions.repository_name.exclude.includes(repository.name)) {
     return new Response(undefined, { status: 204 });
   }
   const github = new Octokit({
     auth: {
       appId,
       installationId: installation.id,
-      privateKey: createPrivateKey(privateKey).export({ format: 'pem', type: 'pkcs8' }),
+      privateKey: createPrivateKey(await privateKey.get()).export({ format: 'pem', type: 'pkcs8' }),
     },
     authStrategy: createAppAuth,
     request: { signal: AbortSignal.timeout(GITHUB_TIMEOUT_MS) },
   });
-  if (event === 'workflow_run') await forwardConfig(body, github);
-  if (ruleset.conditions.repository_name.exclude.includes(repository.name)) {
-    return new Response(undefined, { status: 204 });
-  }
   const pulls = await selectPulls(parsed.data, github);
   for (const pull of pulls) {
     let sha = pull.head?.sha;

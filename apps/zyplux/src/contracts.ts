@@ -1,7 +1,7 @@
 import * as z from 'zod';
 
 export const JsonObjectSchema = z.record(z.string(), z.unknown());
-export const CommitSchema = z.string().regex(/^[\da-f]{40}$/u);
+const CommitSchema = z.string().regex(/^[\da-f]{40}$/u);
 export const PullHeadSchema = z.object({ head: z.object({ sha: CommitSchema }) });
 const PullSchema = z.object({ head: PullHeadSchema.shape.head.optional(), number: z.int().positive() });
 const RunSchema = z.object({ head_sha: CommitSchema, name: z.string() });
@@ -45,15 +45,3 @@ export const ReviewEventSchema = z.discriminatedUnion('event', [
     event: z.literal('workflow_run'),
   }),
 ]);
-
-export const ConfigEventSchema = EnvelopeSchema.extend({
-  action: z.literal('completed'),
-  workflow_run: z.object({
-    check_suite_id: z.int().positive(),
-    conclusion: z.literal('success'),
-    event: z.literal('push'),
-    head_branch: z.string().min(1),
-    head_sha: CommitSchema,
-    path: z.literal('.github/workflows/ci.yml'),
-  }),
-});
